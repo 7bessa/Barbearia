@@ -107,7 +107,13 @@ export function AdminServicos() {
 export function AdminConfiguracoes() {
   const [horario, setHorario] = useState<Horario | null>(null)
   const [msg, setMsg] = useState('')
-  const carregar = useCallback(async () => { const r = await api<{ horario: Horario }>('/api/admin/horarios'); if (r.ok && r.data) setHorario(r.data.horario) }, [])
+  const [erroHorario, setErroHorario] = useState('')
+  const carregar = useCallback(async () => {
+    setErroHorario('')
+    const r = await api<{ horario: Horario; erro?: string }>('/api/admin/horarios')
+    if (r.ok && r.data) setHorario(r.data.horario)
+    else setErroHorario(erroApi(r.data, 'Não foi possível carregar o horário de funcionamento.'))
+  }, [])
   useEffect(() => { carregar() }, [carregar])
   function alterar(chave: keyof Horario, valor: string | number[] | null) { setHorario((h) => h ? { ...h, [chave]: valor } : h) }
   async function salvar(e: FormEvent) {
@@ -117,7 +123,10 @@ export function AdminConfiguracoes() {
     if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível salvar o horário.'))
     setHorario(r.data?.horario ?? horario); setMsg('Horário de funcionamento atualizado.')
   }
-  if (!horario) return <><AdminMarca /><Cartao titulo="Horário de funcionamento"><p className="muted">Carregando horário...</p></Cartao></>
+  if (!horario) return <><AdminMarca /><Cartao titulo="Horário de funcionamento">
+    <p className={erroHorario ? 'error' : 'muted'} role={erroHorario ? 'alert' : undefined}>{erroHorario || 'Carregando horário...'}</p>
+    {erroHorario && <button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button>}
+  </Cartao></>
   const dias = [['Dom', 0], ['Seg', 1], ['Ter', 2], ['Qua', 3], ['Qui', 4], ['Sex', 5], ['Sáb', 6]] as const
   return <><AdminMarca /><Cartao titulo="Horário de funcionamento">
     <form className="settings-form" onSubmit={salvar}>
@@ -184,7 +193,10 @@ function AdminMarca() {
     }
   }
 
-  if (!marca) return <Cartao titulo="Marca e link público"><p className={msg ? 'error' : 'muted'} role={msg ? 'alert' : undefined}>{carregando ? 'Carregando identidade...' : msg || 'Identidade indisponível.'}</p></Cartao>
+  if (!marca) return <Cartao titulo="Marca e link público">
+    <p className={msg ? 'error' : 'muted'} role={msg ? 'alert' : undefined}>{carregando ? 'Carregando identidade...' : msg || 'Identidade indisponível.'}</p>
+    {msg && <button type="button" className={botaoSec} onClick={() => { setCarregando(true); carregar() }}>Tentar novamente</button>}
+  </Cartao>
 
   return <Cartao titulo="Marca e link público">
     <form className="settings-form" onSubmit={salvar}>

@@ -2,7 +2,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
 import { BARBEARIA } from '@/config/barbearia'
 import { useAuth } from '@/store/auth'
 import { api } from '@/lib/api-client'
@@ -60,6 +60,17 @@ export default function Shell({ titulo, children }: { titulo: string; children: 
   }, [usuarioId])
   const nav = usuario ? NAV[usuario.role] ?? [] : []
 
+  function abrirItem(event: MouseEvent<HTMLAnchorElement>, item: NavItem) {
+    // No mesmo painel, o Link do Next pode preservar a hash atual. Limpamos e
+    // notificamos os componentes que escolhem a visão pela hash da URL.
+    if (!item.hash && pathname === item.href && window.location.hash) {
+      event.preventDefault()
+      window.history.pushState(null, '', item.href)
+      window.dispatchEvent(new HashChangeEvent('hashchange'))
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -74,7 +85,7 @@ export default function Shell({ titulo, children }: { titulo: string; children: 
             const className = `nav-link${active ? ' is-active' : ''}`
             return item.hash
               ? <a key={item.href} href={item.href} className={className} aria-current={active ? 'page' : undefined}>{item.label}</a>
-              : <Link key={item.href} href={item.href} className={className} aria-current={active ? 'page' : undefined}>{item.label}</Link>
+              : <Link key={item.href} href={item.href} onClick={(event) => abrirItem(event, item)} className={className} aria-current={active ? 'page' : undefined}>{item.label}</Link>
           })}
         </nav>
         <div className="sidebar-spacer" />
