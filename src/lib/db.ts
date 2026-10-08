@@ -47,7 +47,7 @@ export const toNota = (n: PNota): Nota => ({
 })
 export const toAg = (a: PAg): Agendamento => ({
   id: a.id, clienteId: a.clienteId ?? 0, clienteNome: a.clienteNome, clienteTel: a.clienteTel,
-  barberId: a.barberId, servicoId: a.servicoId, data: a.data, hora: a.hora, dur: a.dur, preco: a.precoCent / 100, cadeira: a.cadeira,
+  barberId: a.barberId, servicoId: a.servicoId, data: a.data, hora: a.hora, dur: a.dur, preco: (a.precoCent + a.adicionalCent) / 100, cadeira: a.cadeira,
   status: a.status, criadoEm: a.criadoEm.toISOString(),
   forma: a.forma ?? undefined, comissaoPct: a.comissaoPct ?? undefined, pagoEm: a.pagoEm?.toISOString(),
 })

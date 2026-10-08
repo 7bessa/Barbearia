@@ -290,6 +290,9 @@ export function AdminAgendamentos() {
   const [barberId, setBarberId] = useState('')
   const [status, setStatus] = useState('')
   const [forma, setForma] = useState('pix')
+  const [baixaId, setBaixaId] = useState<number | null>(null)
+  const [adicionalDescricao, setAdicionalDescricao] = useState('')
+  const [adicionalValor, setAdicionalValor] = useState('')
   const [msg, setMsg] = useState('')
   const carregar = useCallback(async () => {
     const [a, c, b, s, clientes] = await Promise.all([
@@ -304,10 +307,11 @@ export function AdminAgendamentos() {
   }, [])
   useEffect(() => { carregar() }, [carregar])
   const lista = agendamentos.filter((a) => (!data || a.data === data) && (!barberId || String(a.barberId) === barberId) && (!status || a.status === status)).sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
-  async function mudar(a: Ag, next: string) {
+  async function mudar(a: Ag, next: string, incluirAdicional = false) {
     setMsg('')
-    const r = await api<{ erro?: string }>(`/api/agendamentos/${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: next, formaPagamento: next === 'concluido' ? forma : undefined }) })
-    if (!r.ok) setMsg(erroApi(r.data, 'Não foi possível atualizar o atendimento.')); else carregar()
+    const itens = incluirAdicional && adicionalDescricao.trim() && Number(adicionalValor) > 0 ? [{ descricao: adicionalDescricao.trim(), quantidade: 1, valorUnitario: Number(adicionalValor) }] : undefined
+    const r = await api<{ erro?: string }>(`/api/agendamentos/${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: next, formaPagamento: next === 'concluido' ? forma : undefined, itens }) })
+    if (!r.ok) setMsg(erroApi(r.data, 'Não foi possível atualizar o atendimento.')); else { setBaixaId(null); setAdicionalDescricao(''); setAdicionalValor(''); carregar() }
   }
   const nome = (items: { id: number; nome: string }[] | undefined, id: number) => items?.find((x) => x.id === id)?.nome ?? '—'
   const lembrete = (a: Ag) => {
@@ -327,7 +331,7 @@ export function AdminAgendamentos() {
     </div>
     {msg && <p className="error" role="alert">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Data e hora</th><th>Cliente</th><th>Telefone</th><th>Barbeiro</th><th>Serviço</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {lista.map((a) => { const faltas = a.clienteId ? faltasPorCliente[a.clienteId] ?? 0 : 0; const linkLembrete = lembrete(a); return <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}{faltas >= 2 && <span className="no-show-risk">{faltas} faltas</span>}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? <div className="inline-row">{linkLembrete && <a className={botaoSec} href={linkLembrete} target="_blank" rel="noreferrer">Lembrar</a>}<button className={botaoSec} onClick={() => mudar(a, 'concluido')}>Concluir</button><button className="button button-danger" onClick={() => confirm('Marcar este cliente como falta?') && mudar(a, 'faltou')}>Faltou</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr> })}
+      {lista.map((a) => { const faltas = a.clienteId ? faltasPorCliente[a.clienteId] ?? 0 : 0; const linkLembrete = lembrete(a); const baixando = baixaId === a.id; return <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}{faltas >= 2 && <span className="no-show-risk">{faltas} faltas</span>}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? baixando ? <div className="module-form"><label>Pagamento<select className={campo} value={forma} onChange={(e) => setForma(e.target.value)}>{[['pix', 'Pix'], ['dinheiro', 'Dinheiro'], ['debito', 'Débito'], ['credito', 'Crédito']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label><label>Produto ou extra (opcional)<input className={campo} value={adicionalDescricao} maxLength={80} placeholder="Ex.: Pomada" onChange={(e) => setAdicionalDescricao(e.target.value)} /></label><label>Valor do extra (R$)<input className={campo} type="number" min="0.01" step="0.01" value={adicionalValor} onChange={(e) => setAdicionalValor(e.target.value)} /></label><div className="inline-row"><button className={botao} onClick={() => mudar(a, 'concluido', true)}>Confirmar pagamento</button><button className={botaoSec} onClick={() => setBaixaId(null)}>Voltar</button></div></div> : <div className="inline-row">{linkLembrete && <a className={botaoSec} href={linkLembrete} target="_blank" rel="noreferrer">Lembrar</a>}<button className={botaoSec} onClick={() => setBaixaId(a.id)}>Dar baixa</button><button className="button button-danger" onClick={() => confirm('Marcar este cliente como falta?') && mudar(a, 'faltou')}>Faltou</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr> })}
       {lista.length === 0 && <tr><td colSpan={8} className="muted">Nenhum agendamento com esses filtros.</td></tr>}
     </tbody></table></div>
   </Cartao>

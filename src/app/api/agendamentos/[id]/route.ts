@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { idSchema, statusSchema } from '@/lib/validation'
-import { agendamentoPorId, dto, jaPassou, minutosAte } from '@/lib/db'
+import { agendamentoPorId, centavos, dto, jaPassou, minutosAte } from '@/lib/db'
 import { prisma } from '@/lib/prisma'
 import { BARBEARIA } from '@/config/barbearia'
 import { audit } from '@/lib/audit'
@@ -66,19 +66,27 @@ export const PATCH = seguro(async (req: NextRequest, ctx: Ctx) => {
   }
   if ((novo === 'concluido' || novo === 'faltou') && !jaPassou(a)) return erro(409, 'O atendimento ainda não começou')
 
-  let data
   if (novo === 'concluido') {
     // Baixa com pagamento: grava a forma e congela a % de comissão vigente neste momento.
     if (!p.data.formaPagamento) return erro(400, 'Informe a forma de pagamento')
-    const b = await prisma.barbeiro.findFirst({ where: { id: a.barberId, barbeariaId: user.barbeariaId } })
-    data = { status: novo, forma: p.data.formaPagamento, comissaoPct: b?.comissao ?? 0, pagoEm: new Date() }
+    const itens = p.data.itens ?? []
+    const adicionalCent = itens.reduce((total, item) => total + centavos(item.valorUnitario) * item.quantidade, 0)
+    const atualizado = await prisma.$transaction(async (tx) => {
+      const b = await tx.barbeiro.findFirst({ where: { id: a.barberId, barbeariaId: user.barbeariaId } })
+      const r = await tx.agendamento.updateMany({
+        where: { id: a.id, barbeariaId: user.barbeariaId, status: a.status },
+        data: { status: novo, forma: p.data.formaPagamento, comissaoPct: b?.comissao ?? 0, pagoEm: new Date(), adicionalCent },
+      })
+      if (r.count !== 1) return false
+      if (itens.length) await tx.itemComanda.createMany({ data: itens.map((item) => ({ agendamentoId: a.id, descricao: item.descricao, quantidade: item.quantidade, valorUnitCent: centavos(item.valorUnitario) })) })
+      return true
+    })
+    if (!atualizado) return erro(409, 'O agendamento mudou. Atualize a tela.')
   } else {
-    data = { status: novo, forma: null, comissaoPct: null, pagoEm: null }
+    const r = await prisma.agendamento.updateMany({ where: { id: a.id, barbeariaId: user.barbeariaId, status: a.status }, data: { status: novo, forma: null, comissaoPct: null, pagoEm: null } })
+    if (r.count !== 1) return erro(409, 'O agendamento mudou. Atualize a tela.')
   }
-  // Só aplica se o status ainda for o que lemos (duas telas mexendo ao mesmo tempo).
-  const r = await prisma.agendamento.updateMany({ where: { id: a.id, barbeariaId: user.barbeariaId, status: a.status }, data })
-  if (r.count !== 1) return erro(409, 'O agendamento mudou. Atualize a tela.')
-  await audit(req, { acao: 'agendamento_status', resultado: 'ok', userId: user.id, detalhe: { id: a.id, status: novo } })
+  await audit(req, { acao: 'agendamento_status', resultado: 'ok', userId: user.id, detalhe: { id: a.id, status: novo, adicionais: novo === 'concluido' ? (p.data.itens?.length ?? 0) : 0 } })
   const novoA = (await agendamentoPorId(a.id, user.barbeariaId))!
   return NextResponse.json({ agendamento: dto(novoA, user.role !== 'cliente') }, SEM_CACHE)
 })

@@ -169,18 +169,33 @@ model Agendamento {
   hora        String // HH:MM
   dur         Int
   precoCent   Int
+  adicionalCent Int       @default(0)
   cadeira     Int           @default(1)
   status      Status    @default(agendado)
   criadoEm    DateTime  @default(now())
   forma       Forma?
   comissaoPct Int?
   pagoEm      DateTime?
+  itensComanda ItemComanda[]
 
   @@index([barberId, data])
   @@index([clienteId])
   @@index([data])
   @@index([barbeariaId, data])
   @@index([barbeariaId, barberId, data])
+}
+
+// Itens adicionais registrados no balcão ao concluir um atendimento.
+model ItemComanda {
+  id             Int          @id @default(autoincrement())
+  agendamentoId  Int
+  agendamento    Agendamento  @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  descricao      String
+  quantidade     Int          @default(1)
+  valorUnitCent  Int
+  criadaEm       DateTime     @default(now())
+
+  @@index([agendamentoId])
 }
 
 model Sessao {
