@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { idSchema, listaEsperaSchema } from '@/lib/validation'
+import { idSchema, listaEsperaAtualizarSchema, listaEsperaSchema } from '@/lib/validation'
 import { prisma } from '@/lib/prisma'
 import { audit } from '@/lib/audit'
 import { erro, exigir, resp, seguro } from '@/lib/auth'
@@ -33,4 +33,17 @@ export const DELETE = seguro(async (req: NextRequest) => {
   await prisma.listaEspera.delete({ where: { id: item.id } })
   await audit(req, { acao: 'lista_espera_removida', resultado: 'ok', userId: r.user.id, detalhe: { id: item.id } })
   return resp({ ok: true })
+})
+
+export const PATCH = seguro(async (req: NextRequest) => {
+  const r = await exigir(req, ['admin', 'barbeiro'])
+  if (!r.ok) return r.res
+  const id = idSchema.safeParse(req.nextUrl.searchParams.get('id'))
+  const p = listaEsperaAtualizarSchema.safeParse(await req.json().catch(() => null))
+  const filtro = r.user.role === 'barbeiro' ? { OR: [{ barberId: r.user.barberId ?? -1 }, { barberId: null }] } : {}
+  const item = id.success ? await prisma.listaEspera.findFirst({ where: { id: id.data, barbeariaId: r.user.barbeariaId, ...filtro } }) : null
+  if (!item || !p.success) return erro(400, 'Confira a vaga oferecida.')
+  const atualizado = await prisma.listaEspera.update({ where: { id: item.id }, data: { status: p.data.status, vagaData: p.data.status === 'ofertada' ? p.data.vagaData : null, vagaHora: p.data.status === 'ofertada' ? p.data.vagaHora : null } })
+  await audit(req, { acao: 'lista_espera_atualizada', resultado: 'ok', userId: r.user.id, detalhe: { id: item.id, status: p.data.status } })
+  return resp({ item: atualizado })
 })

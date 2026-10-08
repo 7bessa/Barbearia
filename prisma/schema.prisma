@@ -232,6 +232,9 @@ model ListaEspera {
   barberId    Int?
   data        String?
   preferencia String    @default("")
+  status      String    @default("aguardando")
+  vagaData    String?
+  vagaHora    String?
   criadaEm    DateTime  @default(now())
 
   @@index([barbeariaId, data])

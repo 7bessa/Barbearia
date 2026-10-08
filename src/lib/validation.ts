@@ -145,6 +145,11 @@ export const listaEsperaSchema = z.object({
   data: dataSchema.optional(),
   preferencia: curto(180).optional(),
 })
+export const listaEsperaAtualizarSchema = z.object({
+  status: z.enum(['aguardando', 'ofertada', 'preenchida']),
+  vagaData: dataSchema.optional(),
+  vagaHora: hhmm.optional(),
+}).refine((item) => item.status !== 'ofertada' || (!!item.vagaData && !!item.vagaHora))
 export const notaSchema = z.object({
   texto: z.string().max(1500).transform((s) => limparTexto(s, 500)).refine((s) => s.length > 0),
 })

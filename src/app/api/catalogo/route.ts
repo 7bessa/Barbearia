@@ -12,7 +12,7 @@ export const GET = seguro(async (req: NextRequest) => {
     prisma.barbeiro.findMany({ where: { barbeariaId, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true, foto: true } }),
     prisma.servico.findMany({ where: { barbeariaId, ativo: true }, orderBy: { id: 'asc' } }),
     getHorario(barbeariaId),
-    prisma.barbearia.findUniqueOrThrow({ where: { id: barbeariaId }, select: { nome: true, slogan: true, slug: true, corPrimaria: true } }),
+    prisma.barbearia.findUniqueOrThrow({ where: { id: barbeariaId }, select: { nome: true, slogan: true, slug: true, corPrimaria: true, capacidadeCadeiras: true } }),
   ])
   return resp({
     barbearia,

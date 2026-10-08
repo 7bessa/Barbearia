@@ -15,7 +15,7 @@ type DetalheCliente = {
   notas: { id: number; autorId: number; autorNome: string; texto: string; criadaEm: string }[]
 }
 type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; dur: number; preco: number; cadeira?: number; status: string; clienteId?: number; clienteNome?: string; clienteTel?: string; forma?: string | null }
-type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string; preco: number; dur: number }[]; horario: Horario }
+type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string; preco: number; dur: number }[]; horario: Horario; barbearia?: { capacidadeCadeiras: number } }
 type Horario = { abre: string; fecha: string; almocoIni: string | null; almocoFim: string | null; dias: number[] }
 type Bloqueio = { id: number; barberId: number; data: string; ini: string; fim: string; motivo: string }
 
@@ -348,6 +348,8 @@ export function AdminAgenda() {
   const [hora, setHora] = useState('')
   const [disponiveis, setDisponiveis] = useState<string[]>([])
   const [reservaMsg, setReservaMsg] = useState('')
+  const [modoAgenda, setModoAgenda] = useState<'barbeiro' | 'cadeira'>('barbeiro')
+  const [buscaAgenda, setBuscaAgenda] = useState('')
   useEffect(() => {
     Promise.all([api<Catalogo>('/api/catalogo'), api<{ agendamentos: Ag[] }>('/api/agendamentos'), api<{ bloqueios: Bloqueio[] }>('/api/bloqueios')]).then(([c, a, b]) => {
       if (c.ok && c.data) setCatalogo(c.data)
@@ -388,10 +390,12 @@ export function AdminAgenda() {
   const h = catalogo?.horario
   const slots: number[] = []
   if (h) for (let n = minutos(h.abre); n < minutos(h.fecha); n += 30) slots.push(n)
-  const itemEm = (bid: number, n: number) => agendamentos.find((a) => a.barberId === bid && a.data === dia && a.status !== 'cancelado' && n >= minutos(a.hora) && n < minutos(a.hora) + a.dur)
+  const agendaDia = agendamentos.filter((a) => a.data === dia && (!buscaAgenda.trim() || (a.clienteNome ?? '').toLocaleLowerCase().includes(buscaAgenda.trim().toLocaleLowerCase())))
+  const colunas = modoAgenda === 'barbeiro' ? catalogo?.barbeiros.map((b) => ({ id: b.id, nome: b.nome })) ?? [] : Array.from({ length: catalogo?.barbearia?.capacidadeCadeiras ?? 1 }, (_, i) => ({ id: i + 1, nome: `Cadeira ${i + 1}` }))
+  const itemEm = (id: number, n: number) => agendaDia.find((a) => (modoAgenda === 'barbeiro' ? a.barberId === id : (a.cadeira ?? 1) === id) && a.status !== 'cancelado' && n >= minutos(a.hora) && n < minutos(a.hora) + a.dur)
   const bloqueioEm = (bid: number, n: number) => bloqueios.find((b) => b.barberId === bid && b.data === dia && n >= minutos(b.ini) && n < minutos(b.fim))
   return <><Cartao titulo="Agenda da equipe">
-    <div className="inline-row agenda-controls"><button className={botaoSec} aria-label="Dia anterior" onClick={() => setDia(somaDias(dia, -1))}>←</button><input className={campo} type="date" value={dia} onChange={(e) => setDia(e.target.value)} /><button className={botaoSec} aria-label="Próximo dia" onClick={() => setDia(somaDias(dia, 1))}>→</button><button className={botaoSec} onClick={() => setDia(hojeBR())}>Hoje</button><span className="muted">{dataBR(dia)}</span></div>
+    <div className="inline-row agenda-controls"><button className={botaoSec} aria-label="Dia anterior" onClick={() => setDia(somaDias(dia, -1))}>←</button><input className={campo} type="date" value={dia} onChange={(e) => setDia(e.target.value)} /><button className={botaoSec} aria-label="Próximo dia" onClick={() => setDia(somaDias(dia, 1))}>→</button><button className={botaoSec} onClick={() => setDia(hojeBR())}>Hoje</button><input className={campo} aria-label="Buscar cliente na agenda" placeholder="Buscar cliente" value={buscaAgenda} onChange={(e) => setBuscaAgenda(e.target.value)} /><div className="segmented"><button type="button" aria-pressed={modoAgenda === 'barbeiro'} onClick={() => setModoAgenda('barbeiro')}>Por barbeiro</button><button type="button" aria-pressed={modoAgenda === 'cadeira'} onClick={() => setModoAgenda('cadeira')}>Por cadeira</button></div><span className="muted">{dataBR(dia)}</span></div>
     <details className="quick-book"><summary>Agendar no balcão</summary><form className="module-form" onSubmit={agendarBalcao}>
       <label>Cliente<select className={campo} value={clienteId} onChange={(e) => setClienteId(e.target.value)} required><option value="">Selecione um cliente</option>{clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.telefone}</option>)}<option value="novo">Cadastrar novo cliente</option></select></label>
       {clienteId === 'novo' && <>
@@ -406,20 +410,20 @@ export function AdminAgenda() {
       {reservaMsg && <p className="muted" role="status">{reservaMsg}</p>}
       <div className="inline-row"><button className={botao} disabled={!clienteId || !servicoId || !barberId || !hora || (clienteId === 'novo' && (!clienteNome.trim() || !clienteTelefone.trim() || !consentimento))}>Confirmar agendamento</button></div>
     </form></details>
-    {!catalogo ? <p className="muted">Carregando agenda...</p> : <div className="table-wrap"><table className="data-table calendar-table"><thead><tr><th>Hora</th>{catalogo.barbeiros.map((b) => <th key={b.id}>{b.nome}</th>)}</tr></thead><tbody>
-      {slots.map((n) => <tr key={n}><th>{horaTxt(n)}</th>{catalogo.barbeiros.map((b) => {
-        const ag = itemEm(b.id, n); const bloqueio = !ag && bloqueioEm(b.id, n); const isInicio = ag?.hora === horaTxt(n)
+    {!catalogo ? <p className="muted">Carregando agenda...</p> : <div className="table-wrap"><table className="data-table calendar-table"><thead><tr><th>Hora</th>{colunas.map((coluna) => <th key={coluna.id}>{coluna.nome}</th>)}</tr></thead><tbody>
+      {slots.map((n) => <tr key={n}><th>{horaTxt(n)}</th>{colunas.map((coluna) => {
+        const ag = itemEm(coluna.id, n); const bloqueio = modoAgenda === 'barbeiro' && !ag ? bloqueioEm(coluna.id, n) : undefined; const isInicio = ag?.hora === horaTxt(n)
         const weekday = new Date(`${dia}T12:00:00Z`).getUTCDay()
         const fechado = !catalogo.horario.dias.includes(weekday)
         const almoco = !ag && !bloqueio && catalogo.horario.almocoIni !== null && catalogo.horario.almocoFim !== null && n >= minutos(catalogo.horario.almocoIni) && n < minutos(catalogo.horario.almocoFim)
-        return <td key={b.id} className={ag ? 'calendar-booked' : bloqueio || fechado || almoco ? 'calendar-blocked' : ''}>{ag ? isInicio ? <><strong>{ag.clienteNome || 'Cliente'}</strong><small>{ag.hora} · {ag.dur} min · Cadeira {ag.cadeira ?? 1}</small></> : <span className="muted">continua</span> : bloqueio ? <><strong>Bloqueado</strong><small>{bloqueio.motivo || 'Indisponível'}</small></> : fechado ? <span className="muted">Fechado</span> : almoco ? <span className="muted">Almoço</span> : <span className="calendar-free">Livre</span>}</td>
+        return <td key={coluna.id} className={ag ? 'calendar-booked' : bloqueio || fechado || almoco ? 'calendar-blocked' : ''}>{ag ? isInicio ? <><strong>{ag.clienteNome || 'Cliente'}</strong><small>{ag.hora} · {ag.dur} min · Cadeira {ag.cadeira ?? 1}</small></> : <span className="muted">continua</span> : bloqueio ? <><strong>Bloqueado</strong><small>{bloqueio.motivo || 'Indisponível'}</small></> : fechado ? <span className="muted">Fechado</span> : almoco ? <span className="muted">Almoço</span> : <span className="calendar-free">Livre</span>}</td>
       })}</tr>)}
-      {slots.length === 0 && <tr><td colSpan={(catalogo.barbeiros.length || 0) + 1} className="muted">Não há barbeiros ou horários configurados.</td></tr>}
+      {slots.length === 0 && <tr><td colSpan={colunas.length + 1} className="muted">Não há barbeiros ou horários configurados.</td></tr>}
     </tbody></table></div>}
   </Cartao><ListaEspera catalogo={catalogo} /></>
 }
 
-type Espera = { id: number; clienteNome: string; clienteTel: string; servicoId: number | null; barberId: number | null; data: string | null; preferencia: string }
+type Espera = { id: number; clienteNome: string; clienteTel: string; servicoId: number | null; barberId: number | null; data: string | null; preferencia: string; status: 'aguardando' | 'ofertada' | 'preenchida'; vagaData: string | null; vagaHora: string | null }
 type CatalogoEspera = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }
 export function ListaEspera({ catalogo }: { catalogo: CatalogoEspera | null }) {
   const [itens, setItens] = useState<Espera[]>([])
@@ -441,10 +445,19 @@ export function ListaEspera({ catalogo }: { catalogo: CatalogoEspera | null }) {
     setNome(''); setTelefone(''); setServicoId(''); setBarberId(''); setData(''); setPreferencia(''); setMsg('Cliente incluído na lista de espera.'); carregar()
   }
   async function remover(id: number) { if (!confirm('Remover esta pessoa da lista de espera?')) return; await api(`/api/lista-espera?id=${id}`, { method: 'DELETE' }); carregar() }
+  async function oferecer(item: Espera) {
+    const vagaData = prompt('Data da vaga (AAAA-MM-DD):', item.data ?? hojeBR())
+    const vagaHora = vagaData ? prompt('Horário da vaga (HH:MM):', '') : null
+    if (!vagaData || !vagaHora) return
+    const r = await api<{ erro?: string }>(`/api/lista-espera?id=${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'ofertada', vagaData, vagaHora }) })
+    if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível registrar a vaga.'))
+    carregar()
+  }
+  async function preencher(item: Espera) { await api(`/api/lista-espera?id=${item.id}`, { method: 'PATCH', body: JSON.stringify({ status: 'preenchida' }) }); carregar() }
   const whatsapp = (item: Espera) => {
     const tel = item.clienteTel.replace(/\D/g, ''); if (!tel) return ''
     const destino = tel.length <= 11 ? `55${tel}` : tel
-    const quando = item.data ? ` em ${dataBR(item.data)}` : ''
+    const quando = item.vagaData && item.vagaHora ? ` em ${dataBR(item.vagaData)} às ${item.vagaHora}` : item.data ? ` em ${dataBR(item.data)}` : ''
     const texto = `Olá, ${item.clienteNome}! Surgiu uma vaga${quando} para ${nomeServico(item.servicoId)} com ${nomeBarbeiro(item.barberId)}. Você quer confirmar este horário?`
     return `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`
   }
@@ -457,7 +470,7 @@ export function ListaEspera({ catalogo }: { catalogo: CatalogoEspera | null }) {
       <div className="inline-row"><button className={botao}>Adicionar à lista</button></div>
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
-    {itens.length === 0 ? <p className="empty-state">Nenhum cliente aguardando vaga.</p> : itens.map((item) => <div className="list-row" key={item.id}><div className="list-main"><p className="list-title">{item.clienteNome} · {nomeServico(item.servicoId)}</p><p className="list-meta">{item.clienteTel} · {item.data ? dataBR(item.data) : 'qualquer dia'} · {nomeBarbeiro(item.barberId)}{item.preferencia ? ` · ${item.preferencia}` : ''}</p></div><div className="inline-row"><a className={botaoSec} href={whatsapp(item)} target="_blank" rel="noreferrer">Abrir WhatsApp</a><button className="button button-danger" onClick={() => remover(item.id)}>Remover</button></div></div>)}
+    {itens.length === 0 ? <p className="empty-state">Nenhum cliente aguardando vaga.</p> : itens.map((item) => <div className="list-row" key={item.id}><div className="list-main"><p className="list-title">{item.clienteNome} · {nomeServico(item.servicoId)} <span className="status-tag" data-status={item.status === 'preenchida' ? 'concluido' : item.status === 'ofertada' ? 'agendado' : 'faltou'}>{item.status === 'aguardando' ? 'Aguardando vaga' : item.status === 'ofertada' ? 'Vaga oferecida' : 'Preenchida'}</span></p><p className="list-meta">{item.clienteTel} · {item.vagaData && item.vagaHora ? `${dataBR(item.vagaData)} às ${item.vagaHora}` : item.data ? dataBR(item.data) : 'qualquer dia'} · {nomeBarbeiro(item.barberId)}{item.preferencia ? ` · ${item.preferencia}` : ''}</p></div><div className="inline-row">{item.status !== 'preenchida' && <button className={botaoSec} onClick={() => oferecer(item)}>Escolher vaga</button>}{item.status === 'ofertada' && <a className={botaoSec} href={whatsapp(item)} target="_blank" rel="noreferrer">Abrir WhatsApp</a>}{item.status === 'ofertada' && <button className={botao} onClick={() => preencher(item)}>Marcar preenchida</button>}<button className="button button-danger" onClick={() => remover(item.id)}>Remover</button></div></div>)}
   </Cartao>
 }
 
