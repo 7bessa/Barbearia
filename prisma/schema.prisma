@@ -50,6 +50,7 @@ model Barbearia {
   convites     Convite[]
   auditorias   Auditoria[]
   listaEspera  ListaEspera[]
+  despesas     Despesa[]
 }
 
 model Usuario {
@@ -240,4 +241,18 @@ model ListaEspera {
 
   @@index([barbeariaId, data])
   @@index([barbeariaId, barberId])
+}
+
+// Gastos operacionais lançados pelo dono para chegar ao saldo real do caixa.
+model Despesa {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  data        String    // YYYY-MM-DD (Brasília)
+  categoria   String
+  descricao   String
+  valorCent   Int
+  criadaEm    DateTime  @default(now())
+
+  @@index([barbeariaId, data])
 }

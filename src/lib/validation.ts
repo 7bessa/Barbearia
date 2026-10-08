@@ -150,6 +150,12 @@ export const listaEsperaAtualizarSchema = z.object({
   vagaData: dataSchema.optional(),
   vagaHora: hhmm.optional(),
 }).refine((item) => item.status !== 'ofertada' || (!!item.vagaData && !!item.vagaHora))
+export const despesaSchema = z.object({
+  data: dataSchema,
+  categoria: curto(40).refine((s) => s.length >= 2),
+  descricao: curto(120).refine((s) => s.length >= 2),
+  valor: z.number().min(0.01).max(999999).refine(dinheiro),
+})
 export const notaSchema = z.object({
   texto: z.string().max(1500).transform((s) => limparTexto(s, 500)).refine((s) => s.length > 0),
 })

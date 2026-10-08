@@ -19,9 +19,10 @@ export const GET = seguro(async (req: NextRequest) => {
   if (!r.ok) return r.res
   const m = mesSchema.safeParse(req.nextUrl.searchParams.get('mes') ?? agoraBR().slice(0, 7))
   if (!m.success) return erro(400, 'Dados inválidos')
-  const [rows, nomes] = await Promise.all([
+  const [rows, nomes, despesas] = await Promise.all([
     prisma.agendamento.findMany({ where: { barbeariaId: r.user.barbeariaId, data: { startsWith: m.data + '-' } } }),
     carregarNomes(r.user.barbeariaId),
+    prisma.despesa.findMany({ where: { barbeariaId: r.user.barbeariaId, data: { startsWith: m.data + '-' } } }),
   ])
   const lista = rows.map(toAg)
 
@@ -38,5 +39,7 @@ export const GET = seguro(async (req: NextRequest) => {
       },
     })
   }
-  return resp({ mes: m.data, ...calcular(lista, nomes) })
+  const resumo = calcular(lista, nomes)
+  const totalDespesas = despesas.reduce((total, despesa) => total + despesa.valorCent / 100, 0)
+  return resp({ mes: m.data, ...resumo, despesas: totalDespesas, saldoOperacional: resumo.liquido - totalDespesas })
 })

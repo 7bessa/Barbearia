@@ -3,10 +3,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import Shell, { Cartao, Kpi, botao, botaoSec, brl, campo, dataBR, hojeBR } from '@/components/Shell'
 import { AdminAgenda, AdminAgendamentos, AdminBarbeiros, AdminClientes, AdminConfiguracoes, AdminServicos } from '@/components/AdminAreas'
+import AdminDespesas from '@/components/AdminDespesas'
 
 type Resumo = {
   atendimentos: number; bruto: number; comissoes: number; liquido: number; ticketMedio: number; previsto: number
-  faltas: number; taxaFalta: number; porForma: Record<string, number>
+  faltas: number; taxaFalta: number; porForma: Record<string, number>; despesas: number; saldoOperacional: number
   porBarbeiro: { barberId: number; nome: string; atendimentos: number; bruto: number; comissao: number }[]
 }
 type Evento = { ts: string; acao: string; resultado: string; userId: number | null; ip: string | null }
@@ -21,7 +22,9 @@ function ResumoFinanceiro({ r }: { r: Resumo }) {
         <Kpi titulo="Atendimentos" valor={String(r.atendimentos)} />
         <Kpi titulo="Faturamento bruto" valor={brl(r.bruto)} />
         <Kpi titulo="Comissões" valor={brl(r.comissoes)} />
-        <Kpi titulo="Líquido da barbearia" valor={brl(r.liquido)} />
+        <Kpi titulo="Após comissões" valor={brl(r.liquido)} />
+        <Kpi titulo="Despesas operacionais" valor={brl(r.despesas ?? 0)} />
+        <Kpi titulo="Saldo real do caixa" valor={brl(r.saldoOperacional ?? r.liquido)} />
         <Kpi titulo="Ticket médio" valor={brl(r.ticketMedio)} />
         <Kpi titulo="A receber" valor={brl(r.previsto)} />
         <Kpi titulo="Faltas" valor={`${r.faltas} · ${r.taxaFalta}%`} />
@@ -148,6 +151,9 @@ export default function Dashboard() {
         <Cartao titulo="Caixa do dia">
           <label className="inline-row muted">Data<input className={campo} type="date" value={dia} onChange={(e) => e.target.value && setDia(e.target.value)} /></label>
           {caixa ? <ResumoFinanceiro r={caixa} /> : <p className="muted">Carregando caixa...</p>}
+        </Cartao>
+        <Cartao titulo="Despesas do dia">
+          <AdminDespesas data={dia} aoAlterar={carregar} />
         </Cartao>
         <Cartao titulo="Relatório mensal">
           <div className="inline-row"><label className="inline-row muted">Mês<input className={campo} type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></label><a className={`${botaoSec} whitespace-nowrap`} href={`/api/admin/financeiro/relatorio?mes=${mes}&formato=csv`}>Baixar CSV</a></div>
