@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  cliente
+  barbeiro
+  admin
+}
+
+enum Status {
+  agendado
+  concluido
+  faltou
+  cancelado
+}
+
+enum Forma {
+  dinheiro
+  pix
+  debito
+  credito
+}
+
+model Barbearia {
+  id           Int           @id @default(autoincrement())
+  nome         String
+  slug         String        @unique
+  slogan       String        @default("")
+  logo         String        @default("/logo.svg")
+  corPrimaria  String        @default("#fbbf24")
+  corFundo     String        @default("#09090b")
+  ativa        Boolean       @default(true)
+  criadaEm     DateTime      @default(now())
+  usuarios     Usuario[]
+  barbeiros    Barbeiro[]
+  servicos     Servico[]
+  horario      Horario?
+  bloqueios    Bloqueio[]
+  notas        Nota[]
+  agendamentos Agendamento[]
+  convites     Convite[]
+  auditorias   Auditoria[]
+}
+
+model Usuario {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  nome        String
+  email       String?   @unique
+  telefone    String
+  role        Role
+  senhaHash   String
+  semConta    Boolean   @default(false)
+  criadoPorId Int?
+  criadoPor   Usuario?  @relation("CriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criados     Usuario[] @relation("CriadoPor")
+  barberId    Int?
+  barbeiro    Barbeiro? @relation(fields: [barberId], references: [id])
+
+  agendamentos   Agendamento[]
+  notasDoCliente Nota[]        @relation("NotaCliente")
+  notasEscritas  Nota[]        @relation("NotaAutor")
+  sessoes        Sessao[]
+
+  @@unique([barbeariaId, telefone])
+  @@index([barbeariaId])
+}
+
+model Barbeiro {
+  id           Int           @id @default(autoincrement())
+  barbeariaId  Int
+  barbearia    Barbearia     @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  nome         String
+  ativo        Boolean       @default(true)
+  comissao     Int
+  usuarios     Usuario[]
+  agendamentos Agendamento[]
+  bloqueios    Bloqueio[]
+
+  @@index([barbeariaId])
+}
+
+model Servico {
+  id           Int           @id @default(autoincrement())
+  barbeariaId  Int
+  barbearia    Barbearia     @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  nome         String
+  precoCent    Int
+  dur          Int
+  ativo        Boolean       @default(true)
+  agendamentos Agendamento[]
+
+  @@index([barbeariaId])
+}
+
+// Um horário por barbearia; id permanece alinhado ao tenant para preservar a chave existente.
+model Horario {
+  id          Int       @id
+  barbeariaId Int       @unique
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  abre        String
+  fecha       String
+  almocoIni   String?
+  almocoFim   String?
+  dias        Int[]
+}
+
+model Bloqueio {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  barberId    Int
+  barbeiro    Barbeiro  @relation(fields: [barberId], references: [id], onDelete: Cascade)
+  data        String // YYYY-MM-DD
+  ini         String
+  fim         String
+  motivo      String    @default("")
+
+  @@index([barberId, data])
+  @@index([barbeariaId, barberId, data])
+}
+
+model Nota {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  clienteId   Int
+  cliente     Usuario   @relation("NotaCliente", fields: [clienteId], references: [id], onDelete: Cascade)
+  autorId     Int?
+  autor       Usuario?  @relation("NotaAutor", fields: [autorId], references: [id], onDelete: SetNull)
+  autorNome   String
+  texto       String
+  criadaEm    DateTime  @default(now())
+
+  @@index([clienteId])
+  @@index([barbeariaId, clienteId])
+}
+
+model Agendamento {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  clienteId   Int? // null = agendamento público sem conta ou cliente removido (LGPD)
+  cliente     Usuario?  @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  clienteNome String
+  clienteTel  String
+  barberId    Int
+  barbeiro    Barbeiro  @relation(fields: [barberId], references: [id])
+  servicoId   Int
+  servico     Servico   @relation(fields: [servicoId], references: [id])
+  data        String // YYYY-MM-DD (Brasília)
+  hora        String // HH:MM
+  dur         Int
+  precoCent   Int
+  status      Status    @default(agendado)
+  criadoEm    DateTime  @default(now())
+  forma       Forma?
+  comissaoPct Int?
+  pagoEm      DateTime?
+
+  @@index([barberId, data])
+  @@index([clienteId])
+  @@index([data])
+  @@index([barbeariaId, data])
+  @@index([barbeariaId, barberId, data])
+}
+
+model Sessao {
+  sid         String   @id
+  userId      Int
+  usuario     Usuario  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshHash String
+  exp         DateTime
+  indevidas   Int      @default(0)
+
+  @@index([userId])
+}
+
+model RateLimit {
+  chave String   @id
+  n     Int
+  ini   DateTime @default(now())
+  ate   DateTime @default(now())
+}
+
+model Convite {
+  hash        String    @id
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  criadoPorId Int
+  expira      DateTime
+  usadoPorId  Int?
+
+  @@index([barbeariaId])
+}
+
+model Auditoria {
+  id          Int        @id @default(autoincrement())
+  barbeariaId Int?
+  barbearia   Barbearia? @relation(fields: [barbeariaId], references: [id], onDelete: SetNull)
+  ts          DateTime   @default(now())
+  ip          String?
+  ua          String?
+  acao        String
+  resultado   String
+  userId      Int?
+  detalhe     Json       @default("{}")
+
+  @@index([ts])
+  @@index([barbeariaId, ts])
+}

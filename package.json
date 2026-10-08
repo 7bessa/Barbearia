@@ -1,0 +1,58 @@
+{
+  "name": "barbearia",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "setup": "node scripts/setup-env.js",
+    "predev": "node scripts/setup-env.js",
+    "dev": "next dev",
+    "dev:local": "node scripts/dev-server.cjs",
+    "build": "next build",
+    "start": "next start",
+    "prod": "next build && next start",
+    "lint": "eslint src --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "node scripts/test-core.cjs",
+    "test:isolation": "node scripts/test-isolation.cjs",
+    "postinstall": "prisma generate",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:indices": "dotenv -e .env.local -- prisma db execute --file prisma/indices.sql --schema prisma/schema.prisma",
+    "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "db:backup": "dotenv -e .env.local -- node scripts/backup-database.cjs",
+    "check:production": "node scripts/check-production.cjs",
+    "db:setup": "npm run db:migrate && npm run db:indices && npm run db:seed",
+    "db:deploy": "prisma migrate deploy && prisma db execute --file prisma/indices.sql --schema prisma/schema.prisma",
+    "db:studio": "dotenv -e .env.local -- prisma studio"
+  },
+  "dependencies": {
+    "@prisma/client": "~5.22.0",
+    "bcryptjs": "^2.4.3",
+    "jose": "^5.9.3",
+    "next": "15.5.27",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "^3.23.8",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10.4.20",
+    "dotenv-cli": "^7.4.2",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^15.5.27",
+    "postcss": "^8.4.47",
+    "prisma": "~5.22.0",
+    "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
