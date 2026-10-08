@@ -47,6 +47,9 @@ export default function CriarBarbearia() {
     e.preventDefault()
     setErro('')
     if (dados.senha !== dados.confirmarSenha) return setErro('As senhas não coincidem.')
+    if (dados.senha.length < 8 || !/[A-Za-z]/.test(dados.senha) || !/\d/.test(dados.senha)) {
+      return setErro('Use uma senha com pelo menos 8 caracteres, incluindo letra e número.')
+    }
     if (!aceito) return setErro('É preciso aceitar os termos e a política de privacidade.')
 
     setSalvando(true)
@@ -97,7 +100,8 @@ export default function CriarBarbearia() {
         <label>Nome completo<input className="field" value={dados.nome} onChange={(e) => mudar('nome', e.target.value)} autoComplete="name" maxLength={80} required /></label>
         <label>Telefone<input className="field" type="tel" inputMode="tel" autoComplete="tel" placeholder="Com DDD" value={dados.telefone} onChange={(e) => mudar('telefone', e.target.value)} maxLength={30} required /></label>
         <label>E-mail<input className="field" type="email" autoComplete="email" value={dados.email} onChange={(e) => mudar('email', e.target.value)} maxLength={254} required /></label>
-        <label>Senha<input className="field" type="password" autoComplete="new-password" value={dados.senha} onChange={(e) => mudar('senha', e.target.value)} minLength={8} maxLength={72} required /></label>
+        <label>Senha<input className="field" type="password" autoComplete="new-password" value={dados.senha} onChange={(e) => mudar('senha', e.target.value)} minLength={8} maxLength={72} required aria-describedby="senha-ajuda" /></label>
+        <p id="senha-ajuda" className="muted">Use ao menos 8 caracteres, com letra e número.</p>
         <label>Confirmar senha<input className="field" type="password" autoComplete="new-password" value={dados.confirmarSenha} onChange={(e) => mudar('confirmarSenha', e.target.value)} minLength={8} maxLength={72} required /></label>
         <label className="check-label"><input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} /><span>Aceito os <Link href="/termos" target="_blank" className="text-link">termos de uso</Link> e a <Link href="/privacidade" target="_blank" className="text-link">política de privacidade</Link>.</span></label>
         {erro && <p className="error" role="alert">{erro}</p>}
