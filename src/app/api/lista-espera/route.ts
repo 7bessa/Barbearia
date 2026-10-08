@@ -5,7 +5,7 @@ import { audit } from '@/lib/audit'
 import { erro, exigir, resp, seguro } from '@/lib/auth'
 
 export const GET = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['admin', 'barbeiro'])
+  const r = await exigir(req, ['admin', 'barbeiro', 'recepcionista'])
   if (!r.ok) return r.res
   const filtro = r.user.role === 'barbeiro' ? { OR: [{ barberId: r.user.barberId ?? -1 }, { barberId: null }] } : {}
   const itens = await prisma.listaEspera.findMany({ where: { barbeariaId: r.user.barbeariaId, ...filtro }, orderBy: { criadaEm: 'asc' } })
@@ -13,7 +13,7 @@ export const GET = seguro(async (req: NextRequest) => {
 })
 
 export const POST = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['admin', 'barbeiro'])
+  const r = await exigir(req, ['admin', 'barbeiro', 'recepcionista'])
   if (!r.ok) return r.res
   const p = listaEsperaSchema.safeParse(await req.json().catch(() => null))
   if (!p.success) return erro(400, 'Confira os dados da lista de espera.')
@@ -24,7 +24,7 @@ export const POST = seguro(async (req: NextRequest) => {
 })
 
 export const DELETE = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['admin', 'barbeiro'])
+  const r = await exigir(req, ['admin', 'barbeiro', 'recepcionista'])
   if (!r.ok) return r.res
   const id = idSchema.safeParse(req.nextUrl.searchParams.get('id'))
   const filtro = r.user.role === 'barbeiro' ? { OR: [{ barberId: r.user.barberId ?? -1 }, { barberId: null }] } : {}
@@ -36,7 +36,7 @@ export const DELETE = seguro(async (req: NextRequest) => {
 })
 
 export const PATCH = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['admin', 'barbeiro'])
+  const r = await exigir(req, ['admin', 'barbeiro', 'recepcionista'])
   if (!r.ok) return r.res
   const id = idSchema.safeParse(req.nextUrl.searchParams.get('id'))
   const p = listaEsperaAtualizarSchema.safeParse(await req.json().catch(() => null))

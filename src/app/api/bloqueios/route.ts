@@ -7,7 +7,7 @@ import { erro, exigir, resp, seguro } from '@/lib/auth'
 
 // Barbeiro vê/cria só os dele (folga, almoço, férias). Dono vê/cria de qualquer barbeiro.
 export const GET = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['barbeiro', 'admin'])
+  const r = await exigir(req, ['barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const hoje = agoraBR().slice(0, 10)
   const filtro = Number(req.nextUrl.searchParams.get('barberId'))

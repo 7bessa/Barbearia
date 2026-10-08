@@ -6,7 +6,7 @@ import { audit } from '@/lib/audit'
 import { erro, exigir, resp, seguro } from '@/lib/auth'
 
 export const GET = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['admin'])
+  const r = await exigir(req, ['admin', 'recepcionista'])
   if (!r.ok) return r.res
   return resp({ servicos: (await prisma.servico.findMany({ where: { barbeariaId: r.user.barbeariaId }, orderBy: { id: 'asc' } })).map(toServ) })
 })

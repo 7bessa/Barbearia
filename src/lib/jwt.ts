@@ -1,7 +1,7 @@
 // Compatível com o Edge Runtime (usado pelo middleware): só depende de "jose".
 import { SignJWT, jwtVerify } from 'jose'
 
-export type Role = 'cliente' | 'barbeiro' | 'admin'
+export type Role = 'cliente' | 'barbeiro' | 'recepcionista' | 'admin'
 
 const prod = process.env.NODE_ENV === 'production'
 export const COOKIES = {

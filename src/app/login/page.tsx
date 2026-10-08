@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/store/auth'
 import { BARBEARIA } from '@/config/barbearia'
 
-const HOME = { cliente: '/cliente/agendar', barbeiro: '/barbeiro/agenda', admin: '/admin/dashboard' } as const
+const HOME = { cliente: '/cliente/agendar', barbeiro: '/barbeiro/agenda', recepcionista: '/recepcao/dashboard', admin: '/admin/dashboard' } as const
 
 export default function Login() {
   const router = useRouter()

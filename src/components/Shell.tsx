@@ -26,6 +26,10 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/barbeiro/agenda#bloqueios', label: 'Bloqueios', end: true, hash: 'bloqueios' },
     { href: '/barbeiro/agenda#clientes', label: 'Clientes', end: true, hash: 'clientes' },
   ],
+  recepcionista: [
+    { href: '/recepcao/dashboard', label: 'Agenda', end: true },
+    { href: '/recepcao/dashboard#agendamentos', label: 'Atendimentos', end: true, hash: 'agendamentos' },
+  ],
   admin: [
     { href: '/admin/dashboard', label: 'Painel', end: true },
     { href: '/admin/dashboard#financeiro', label: 'Financeiro', end: true, hash: 'financeiro' },
@@ -98,7 +102,7 @@ export default function Shell({ titulo, children }: { titulo: string; children: 
       <main className="app-main">
         <header className="page-header">
           <div>
-            <p className="eyebrow">{usuario?.role === 'admin' ? 'GESTÃO' : usuario?.role === 'barbeiro' ? 'EQUIPE' : 'ÁREA DO CLIENTE'}</p>
+            <p className="eyebrow">{usuario?.role === 'admin' ? 'GESTÃO' : usuario?.role === 'barbeiro' ? 'EQUIPE' : usuario?.role === 'recepcionista' ? 'RECEPÇÃO' : 'ÁREA DO CLIENTE'}</p>
             <h1>{titulo}</h1>
           </div>
         </header>

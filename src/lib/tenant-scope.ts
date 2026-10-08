@@ -1,13 +1,13 @@
 type UsuarioTenant = {
   id: number
   barbeariaId: number
-  role: 'cliente' | 'barbeiro' | 'admin'
+  role: 'cliente' | 'barbeiro' | 'recepcionista' | 'admin'
   barberId?: number
 }
 
 export function filtroClientesTenant(usuario: UsuarioTenant) {
   const base = { barbeariaId: usuario.barbeariaId, role: 'cliente' as const }
-  if (usuario.role === 'admin') return base
+  if (usuario.role === 'admin' || usuario.role === 'recepcionista') return base
   return {
     ...base,
     OR: [

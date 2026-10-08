@@ -8,7 +8,7 @@ import { erro, exigir, resp, seguro } from '@/lib/auth'
 
 // Cada papel só enxerga o que é seu (a lista vem filtrada no servidor).
 export const GET = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['cliente', 'barbeiro', 'admin'])
+  const r = await exigir(req, ['cliente', 'barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const { user } = r
   const where = user.role === 'cliente' ? { barbeariaId: user.barbeariaId, clienteId: user.id } : user.role === 'barbeiro' ? { barbeariaId: user.barbeariaId, barberId: user.barberId ?? -1 } : { barbeariaId: user.barbeariaId }
@@ -19,7 +19,7 @@ export const GET = seguro(async (req: NextRequest) => {
 // Cliente agenda para si. Barbeiro/dono agendam para um cliente (inclusive de balcão).
 // Preço, duração e dados do cliente vêm sempre do servidor.
 export const POST = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['cliente', 'barbeiro', 'admin'])
+  const r = await exigir(req, ['cliente', 'barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const { user } = r
   if (!(await consumir(`agendar:${user.id}`, 60, 60 * 60 * 1000))) return erro(429, 'Muitas requisições. Tente mais tarde.')

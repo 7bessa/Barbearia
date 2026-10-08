@@ -202,7 +202,7 @@ export function filtroClientes(u: Usuario): Prisma.UsuarioWhereInput {
   return filtroClientesTenant(u)
 }
 export async function equipeAcessaCliente(u: Usuario, clienteId: number) {
-  if (u.role === 'admin') return true
+  if (u.role === 'admin' || u.role === 'recepcionista') return true
   if (u.role !== 'barbeiro') return false
   return (await prisma.usuario.count({ where: { id: clienteId, ...filtroClientes(u) } })) > 0
 }

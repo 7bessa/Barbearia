@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/lib/api-client'
 
-export type Usuario = { id: number; nome: string; email: string; role: 'cliente' | 'barbeiro' | 'admin'; barberId?: number }
+export type Usuario = { id: number; nome: string; email: string; role: 'cliente' | 'barbeiro' | 'recepcionista' | 'admin'; barberId?: number }
 type Resp = { usuario?: Usuario; erro?: string }
 type Cadastro = { nome: string; telefone: string; email: string; senha: string; aceitoTermos: boolean; role?: 'cliente' | 'barbeiro'; codigoConvite?: string }
 

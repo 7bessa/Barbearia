@@ -27,7 +27,7 @@ async function carregar(req: NextRequest, ctx: Ctx, roles: Role[]): Promise<Carr
   const a = await agendamentoPorId(id.data, user.barbeariaId)
   const dono =
     !!a &&
-    (user.role === 'admin' ||
+    (user.role === 'admin' || user.role === 'recepcionista' ||
       (user.role === 'cliente' && a.clienteId === user.id) ||
       (user.role === 'barbeiro' && a.barberId === user.barberId))
   if (!a || !dono) {
@@ -40,13 +40,13 @@ async function carregar(req: NextRequest, ctx: Ctx, roles: Role[]): Promise<Carr
 }
 
 export const GET = seguro(async (req: NextRequest, ctx: Ctx) => {
-  const x = await carregar(req, ctx, ['cliente', 'barbeiro', 'admin'])
+  const x = await carregar(req, ctx, ['cliente', 'barbeiro', 'recepcionista', 'admin'])
   if (!x.ok) return x.res
   return NextResponse.json({ agendamento: dto(x.a, x.user.role !== 'cliente') }, SEM_CACHE)
 })
 
 export const PATCH = seguro(async (req: NextRequest, ctx: Ctx) => {
-  const x = await carregar(req, ctx, ['cliente', 'barbeiro', 'admin'])
+  const x = await carregar(req, ctx, ['cliente', 'barbeiro', 'recepcionista', 'admin'])
   if (!x.ok) return x.res
   const p = statusSchema.safeParse(await req.json().catch(() => null))
   if (!p.success) return erro(400, 'Dados inválidos')

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { COOKIES, verificarAcesso, type Role } from '@/lib/jwt'
 
 const prod = process.env.NODE_ENV === 'production'
-const AREAS: Record<string, Role> = { '/cliente': 'cliente', '/barbeiro': 'barbeiro', '/admin': 'admin' }
+const AREAS: Record<string, Role> = { '/cliente': 'cliente', '/barbeiro': 'barbeiro', '/recepcao': 'recepcionista', '/admin': 'admin' }
 
 function csp(nonce: string) {
   return [

@@ -13,7 +13,7 @@ const TAM = 50
 // Lista de clientes com busca (?q=nome ou telefone) e paginação (?pagina=1).
 // Barbeiro vê só os seus; dono vê todos e também e-mail e total gasto.
 export const GET = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['barbeiro', 'admin'])
+  const r = await exigir(req, ['barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const { user } = r
   const admin = user.role === 'admin'
@@ -48,7 +48,7 @@ export const GET = seguro(async (req: NextRequest) => {
 
 // Cadastro de cliente no balcão (sem login). O cliente deve concordar com o uso dos dados.
 export const POST = seguro(async (req: NextRequest) => {
-  const r = await exigir(req, ['barbeiro', 'admin'])
+  const r = await exigir(req, ['barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   if (!(await consumir(`cliente:${r.user.id}`, 60, 60 * 60 * 1000))) return erro(429, 'Muitas requisições. Tente mais tarde.')
   const p = clienteNovoSchema.safeParse(await req.json().catch(() => null))
