@@ -7,7 +7,7 @@ import { botao, botaoSec, brl, hojeBR, somaDias, dataBR } from '@/components/She
 
 type Catalogo = {
   barbearia: { id: number; nome: string; slug: string; slogan: string; logo: string; corPrimaria: string; corFundo: string }
-  barbeiros: { id: number; nome: string }[]
+  barbeiros: { id: number; nome: string; foto: string }[]
   servicos: { id: number; nome: string; preco: number; dur: number }[]
 }
 type Confirmacao = { id: number; data: string; hora: string; preco: number }
@@ -157,7 +157,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
 
             {passo === 2 && <div className="choice-grid">
               {catalogo.barbeiros.map((item) => <button key={item.id} type="button" className="choice-card" aria-pressed={barberId === String(item.id)} onClick={() => { setBarberId(String(item.id)); setPasso(3) }}>
-                <span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span>
+                <span className="barber-choice">{item.foto ? <img className="barber-choice-photo" src={item.foto} alt={`Foto de ${item.nome}`} /> : <span className="barber-photo-fallback" aria-hidden="true">{item.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
               </button>)}
               {!catalogo.barbeiros.length && <p className="empty-state">Esta barbearia ainda não tem profissionais disponíveis.</p>}
             </div>}

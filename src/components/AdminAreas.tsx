@@ -5,7 +5,7 @@ import { Cartao, botao, botaoSec, brl, campo, dataBR, hojeBR, somaDias } from '@
 import { useAuth } from '@/store/auth'
 import { normalizarSlug } from '@/lib/slug-barbearia'
 
-type Barbeiro = { id: number; nome: string; comissao: number; ativo: boolean; temLogin?: boolean }
+type Barbeiro = { id: number; nome: string; foto: string; comissao: number; ativo: boolean; temLogin?: boolean }
 type Servico = { id: number; nome: string; preco: number; dur: number; ativo: boolean }
 type Cliente = { id: number; nome: string; telefone: string; email?: string; semConta?: boolean; visitas: number; faltas: number; ultimoAtendimento: string | null; totalGasto?: number }
 type DetalheCliente = {
@@ -30,16 +30,17 @@ export function AdminBarbeiros() {
   const [itens, setItens] = useState<Barbeiro[]>([])
   const [editando, setEditando] = useState<number | null>(null)
   const [nome, setNome] = useState('')
+  const [foto, setFoto] = useState('')
   const [comissao, setComissao] = useState('40')
   const [ativo, setAtivo] = useState(true)
   const [msg, setMsg] = useState('')
   const carregar = useCallback(async () => { const r = await api<{ barbeiros: Barbeiro[] }>('/api/admin/barbeiros'); if (r.ok && r.data) setItens(r.data.barbeiros) }, [])
   useEffect(() => { carregar() }, [carregar])
-  const limpar = () => { setEditando(null); setNome(''); setComissao('40'); setAtivo(true) }
-  const editar = (b: Barbeiro) => { setEditando(b.id); setNome(b.nome); setComissao(String(b.comissao)); setAtivo(b.ativo) }
+  const limpar = () => { setEditando(null); setNome(''); setFoto(''); setComissao('40'); setAtivo(true) }
+  const editar = (b: Barbeiro) => { setEditando(b.id); setNome(b.nome); setFoto(b.foto); setComissao(String(b.comissao)); setAtivo(b.ativo) }
   async function salvar(e: FormEvent) {
     e.preventDefault(); setMsg('')
-    const body = JSON.stringify({ nome: nome.trim(), comissao: Number(comissao), ativo })
+    const body = JSON.stringify({ nome: nome.trim(), foto: foto.trim(), comissao: Number(comissao), ativo })
     const r = await api<{ erro?: string }>(editando ? `/api/admin/barbeiros/${editando}` : '/api/admin/barbeiros', { method: editando ? 'PATCH' : 'POST', body })
     if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível salvar o barbeiro.'))
     limpar(); setMsg('Barbeiro salvo.'); carregar()
@@ -52,13 +53,14 @@ export function AdminBarbeiros() {
   return <Cartao titulo="Barbeiros">
     <form className="module-form" onSubmit={salvar}>
       <label>Nome<input className={campo} value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} required /></label>
+      <label>Foto do profissional (link HTTPS)<input className={campo} type="url" value={foto} onChange={(e) => setFoto(e.target.value)} maxLength={2048} placeholder="https://..." /></label>
       <label>Comissão (%)<input className={campo} type="number" min="0" max="100" step="1" value={comissao} onChange={(e) => setComissao(e.target.value)} required /></label>
       {editando !== null && <label className="check-label"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Profissional ativo</label>}
       <div className="inline-row"><button className={botao}>{editando ? 'Salvar alterações' : 'Cadastrar profissional'}</button>{editando !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar edição</button>}</div>
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Nome</th><th>Comissão</th><th>Acesso</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-      {itens.map((b) => <tr key={b.id}><td>{b.nome}</td><td>{b.comissao}%</td><td>{b.temLogin ? 'Conta ativa' : 'Sem login'}</td><td><span className="status-tag" data-status={b.ativo ? 'concluido' : 'cancelado'}>{b.ativo ? 'Ativo' : 'Inativo'}</span></td><td><div className="inline-row"><button className={botaoSec} onClick={() => editar(b)}>Editar</button><button className="button button-danger" onClick={() => remover(b)}>Remover</button></div></td></tr>)}
+      {itens.map((b) => <tr key={b.id}><td><span className="barber-list-name">{b.foto ? <img className="barber-list-photo" src={b.foto} alt="" /> : <span className="barber-photo-fallback barber-list-fallback" aria-hidden="true">{b.nome.slice(0, 1)}</span>}{b.nome}</span></td><td>{b.comissao}%</td><td>{b.temLogin ? 'Conta ativa' : 'Sem login'}</td><td><span className="status-tag" data-status={b.ativo ? 'concluido' : 'cancelado'}>{b.ativo ? 'Ativo' : 'Inativo'}</span></td><td><div className="inline-row"><button className={botaoSec} onClick={() => editar(b)}>Editar</button><button className="button button-danger" onClick={() => remover(b)}>Remover</button></div></td></tr>)}
       {itens.length === 0 && <tr><td colSpan={5} className="muted">Nenhum barbeiro cadastrado.</td></tr>}
     </tbody></table></div>
   </Cartao>
@@ -143,7 +145,7 @@ export function AdminConfiguracoes() {
   </Cartao></>
 }
 
-type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string }
+type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string; imagemAmbiente: string }
 const corHex = (valor: string, padrao: string) => /^#[0-9a-fA-F]{6}$/.test(valor) ? valor : padrao
 
 function AdminMarca() {
@@ -174,7 +176,7 @@ function AdminMarca() {
     setSalvando(true)
     const r = await api<{ barbearia?: Marca; erro?: string }>('/api/admin/barbearia', {
       method: 'PUT',
-      body: JSON.stringify({ nome: marca.nome, slogan: marca.slogan, slug: marca.slug, corPrimaria: marca.corPrimaria, corFundo: marca.corFundo }),
+      body: JSON.stringify({ nome: marca.nome, slogan: marca.slogan, slug: marca.slug, corPrimaria: marca.corPrimaria, corFundo: marca.corFundo, imagemAmbiente: marca.imagemAmbiente }),
     })
     setSalvando(false)
     if (!r.ok || !r.data?.barbearia) return setMsg(erroApi(r.data, 'Não foi possível salvar a identidade.'))
@@ -204,11 +206,13 @@ function AdminMarca() {
         <label>Nome da barbearia<input className={campo} value={marca.nome} maxLength={70} onChange={(e) => alterar('nome', e.target.value)} required /></label>
         <label>Frase curta<input className={campo} value={marca.slogan} maxLength={100} onChange={(e) => alterar('slogan', e.target.value)} /></label>
         <label>Endereço do link<input className={campo} value={marca.slug} maxLength={48} autoCapitalize="none" autoCorrect="off" onChange={(e) => alterar('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-'))} required /></label>
+        <label>Foto do ambiente (link HTTPS)<input className={campo} type="url" value={marca.imagemAmbiente} maxLength={2048} placeholder="https://..." onChange={(e) => alterar('imagemAmbiente', e.target.value)} /></label>
         <label className="brand-color-field">Cor principal<input type="color" value={marca.corPrimaria} onChange={(e) => alterar('corPrimaria', e.target.value)} /></label>
         <label className="brand-color-field">Cor de fundo<input type="color" value={marca.corFundo} onChange={(e) => alterar('corFundo', e.target.value)} /></label>
       </div>
       <button type="button" className={botaoSec} onClick={() => alterar('slug', normalizarSlug(marca.nome))}>Gerar endereço pelo nome</button>
       <div className="brand-preview" style={estilo}><span>AGENDAMENTO ONLINE</span><strong>{marca.nome || 'Sua barbearia'}</strong><small>{marca.slogan || 'Escolha seu serviço e horário.'}</small></div>
+      {marca.imagemAmbiente && <img className="brand-ambient-preview" src={marca.imagemAmbiente} alt="Prévia do ambiente da barbearia" />}
       <div className="public-link-row">
         <label>Link para compartilhar<input className={campo} value={link} readOnly onFocus={(e) => e.currentTarget.select()} /></label>
         <div className="inline-row"><button type="button" className={botaoSec} onClick={copiarLink}>{copiado ? 'Copiado' : 'Copiar link'}</button><a className="link-muted" href={link} target="_blank" rel="noreferrer">Abrir página pública</a></div>

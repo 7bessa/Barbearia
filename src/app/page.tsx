@@ -9,10 +9,11 @@ export const dynamic = 'force-dynamic'
 export default async function Home() {
   const loja = await prisma.barbearia.findUnique({
     where: { id: BARBEARIA_PADRAO_ID },
-    select: { nome: true, slogan: true, slug: true, ativa: true },
+    select: { nome: true, slogan: true, slug: true, ativa: true, imagemAmbiente: true },
   }).catch(() => null)
   const nome = loja?.nome ?? B.nome
   const slogan = loja?.slogan ?? B.slogan
+  const imagemAmbiente = loja?.imagemAmbiente || '/barbershop-ambient.png'
   const linkAgendamento = loja?.ativa ? `/agendar/${encodeURIComponent(loja.slug)}` : '/login'
 
   return (
@@ -22,11 +23,15 @@ export default async function Home() {
         <div className="inline-row"><Link href="/login" className="link-muted">Entrar</Link><Link href="/cadastro" className="button button-primary">Cadastrar-se</Link></div>
       </header>
       <section className="home-hero">
-        <Image className="home-mark" src={B.logo} alt="" width={76} height={76} priority />
-        <p className="eyebrow">BARBEARIA · GOIÂNIA</p>
-        <h1>{nome}</h1>
-        <p>{slogan}. Escolha seu serviço, profissional e horário.</p>
-        <div className="home-actions"><Link href={linkAgendamento} className="button button-primary">Marcar horário</Link><Link href="/cadastro" className="button button-secondary">Cadastrar-se</Link></div>
+        <img className="home-hero-image" src={imagemAmbiente} alt="" />
+        <div className="home-hero-shade" aria-hidden="true" />
+        <div className="home-hero-content">
+          <Image className="home-mark" src={B.logo} alt="" width={76} height={76} priority />
+          <p className="eyebrow">BARBEARIA · GOIÂNIA</p>
+          <h1>{nome}</h1>
+          <p>{slogan}. Escolha seu serviço, profissional e horário.</p>
+          <div className="home-actions"><Link href={linkAgendamento} className="button button-primary">Marcar horário</Link><Link href="/cadastro" className="button button-secondary">Cadastrar-se</Link></div>
+        </div>
       </section>
       <section className="home-section home-info">
         <div><span className="eyebrow">NO SEU TEMPO</span><h2>Seu próximo horário começa aqui.</h2></div>

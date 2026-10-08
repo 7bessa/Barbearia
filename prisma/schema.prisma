@@ -35,6 +35,7 @@ model Barbearia {
   logo         String        @default("/logo.svg")
   corPrimaria  String        @default("#fbbf24")
   corFundo     String        @default("#09090b")
+  imagemAmbiente String      @default("/barbershop-ambient.png")
   ativa        Boolean       @default(true)
   criadaEm     DateTime      @default(now())
   usuarios     Usuario[]
@@ -78,6 +79,7 @@ model Barbeiro {
   barbeariaId  Int
   barbearia    Barbearia     @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
   nome         String
+  foto         String        @default("")
   ativo        Boolean       @default(true)
   comissao     Int
   usuarios     Usuario[]

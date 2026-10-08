@@ -125,6 +125,15 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
 .choice-title { font-weight: 600; }
 .choice-detail { color: var(--muted); font-size: .8rem; }
 .choice-price { color: var(--accent); font: 700 1rem 'JetBrains Mono', Consolas, monospace; }
+.barber-choice { display: grid; grid-template-columns: 48px minmax(0, 1fr); align-items: center; gap: 10px; }
+.barber-choice-photo, .barber-photo-fallback { width: 48px; height: 48px; border-radius: 50%; }
+.barber-choice-photo { border: 1px solid rgba(255,255,255,.15); background: #27272a; object-fit: cover; }
+.barber-photo-fallback { display: grid; place-items: center; border: 1px solid rgba(251,191,36,.35); background: rgba(251,191,36,.12); color: var(--accent); font-weight: 700; }
+.barber-choice-copy { display: grid; min-width: 0; gap: 3px; }
+.barber-list-name { display: inline-flex; align-items: center; gap: 8px; }
+.barber-list-photo, .barber-list-fallback { width: 30px; height: 30px; flex: 0 0 30px; }
+.barber-list-photo { border-radius: 50%; background: #27272a; object-fit: cover; }
+.barber-list-fallback { font-size: .72rem; }
 .stepper { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 3px; }
 .step { display: flex; align-items: center; gap: 8px; min-width: 0; color: #71717a; font-size: .75rem; }
 .step-index { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border: 1px solid #3f3f46; border-radius: 50%; font-weight: 700; }
@@ -164,9 +173,12 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
 .home-nav { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px clamp(16px, 4vw, 44px); border-bottom: 1px solid rgba(255,255,255,.08); background: rgba(9,9,11,.7); }
 .home-brand { display: flex; align-items: center; gap: 9px; color: var(--accent); font-weight: 700; text-decoration: none; }
 .home-brand img { width: 32px; height: 32px; }
-.home-hero { max-width: 1000px; margin: 0 auto; padding: 78px 22px 50px; text-align: center; }
-.home-hero h1 { color: var(--accent); font-size: 3rem; }
-.home-hero > p { margin: 10px auto 22px; color: var(--muted); }
+.home-hero { position: relative; display: grid; min-height: min(620px, calc(100svh - 116px)); overflow: hidden; place-items: center; margin: 0; padding: 56px 22px; text-align: center; }
+.home-hero-image { position: absolute; z-index: -2; width: 100%; height: 100%; inset: 0; object-fit: cover; }
+.home-hero-shade { position: absolute; z-index: -1; inset: 0; background: rgba(9,9,11,.66); }
+.home-hero-content { display: grid; justify-items: center; width: min(760px, 100%); }
+.home-hero h1 { color: var(--accent); font-size: 3rem; text-shadow: 0 2px 18px rgba(0,0,0,.72); }
+.home-hero-content > p { margin: 10px auto 22px; color: #e4e4e7; text-shadow: 0 1px 12px rgba(0,0,0,.8); }
 .home-actions { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; }
 .home-section { max-width: 1000px; margin: 0 auto; padding: 22px; }
 .home-mark { width: 76px; height: 76px; margin-bottom: 12px; object-fit: contain; filter: drop-shadow(0 0 20px rgba(251,191,36,.18)); }
@@ -264,6 +276,7 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
 .brand-preview span { color: var(--muted); font-size: .65rem; font-weight: 700; letter-spacing: .08em; }
 .brand-preview strong { color: var(--brand-preview-accent); font-size: 1.2rem; overflow-wrap: anywhere; }
 .brand-preview small { color: #a1a1aa; }
+.brand-ambient-preview { width: min(100%, 520px); aspect-ratio: 16 / 7; border: 1px solid rgba(255,255,255,.12); border-radius: 5px; background: #18181b; object-fit: cover; }
 .public-link-row { display: grid; gap: 8px; }
 .public-link-row > label { display: grid; gap: 5px; color: #d4d4d8; font-size: .78rem; }
 .public-link-row .field { font-family: 'JetBrains Mono', Consolas, monospace; font-size: .76rem; }
@@ -296,7 +309,7 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
   .auth-form { gap: 12px; padding: 20px; }
   .home-info { grid-template-columns: 1fr; }
   .home-info > p { max-width: 400px; }
-  .home-hero { padding-top: 58px; }
+  .home-hero { min-height: 430px; padding-top: 58px; }
   .home-hero h1 { font-size: 2.15rem; }
   .public-booking-content { gap: 16px; padding-top: 24px; }
   .public-booking-panel, .public-confirmation { gap: 16px; padding: 14px; }

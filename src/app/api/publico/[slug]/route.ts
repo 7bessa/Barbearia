@@ -23,7 +23,7 @@ export const GET = seguro(async (_req: NextRequest, ctx: Contexto) => {
   const barbearia = await buscarBarbearia(slug)
   if (!barbearia?.ativa) return erro(404, 'Barbearia não encontrada')
   const [barbeiros, servicos] = await Promise.all([
-    prisma.barbeiro.findMany({ where: { barbeariaId: barbearia.id, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true } }),
+    prisma.barbeiro.findMany({ where: { barbeariaId: barbearia.id, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true, foto: true } }),
     prisma.servico.findMany({ where: { barbeariaId: barbearia.id, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true, precoCent: true, dur: true } }),
   ])
   return resp({

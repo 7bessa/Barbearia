@@ -23,7 +23,7 @@ export type Usuario = {
   semConta?: boolean // cliente cadastrado no balcão (não faz login)
   criadoPor?: number
 }
-export type Barbeiro = { id: number; nome: string; ativo: boolean; comissao: number }
+export type Barbeiro = { id: number; nome: string; foto: string; ativo: boolean; comissao: number }
 export type Servico = { id: number; nome: string; preco: number; dur: number; ativo: boolean }
 export type Bloqueio = { id: number; barberId: number; data: string; ini: string; fim: string; motivo: string }
 export type Nota = { id: number; clienteId: number; autorId: number; autorNome: string; texto: string; criadaEm: string }
@@ -39,7 +39,7 @@ export const toUsuario = (u: PUsuario): Usuario => ({
   id: u.id, barbeariaId: u.barbeariaId, nome: u.nome, email: u.email ?? '', telefone: u.telefone, role: u.role, senhaHash: u.senhaHash,
   barberId: u.barberId ?? undefined, semConta: u.semConta || undefined, criadoPor: u.criadoPorId ?? undefined,
 })
-export const toBarb = (b: PBarb): Barbeiro => ({ id: b.id, nome: b.nome, ativo: b.ativo, comissao: b.comissao })
+export const toBarb = (b: PBarb): Barbeiro => ({ id: b.id, nome: b.nome, foto: b.foto, ativo: b.ativo, comissao: b.comissao })
 export const toServ = (s: PServ): Servico => ({ id: s.id, nome: s.nome, preco: s.precoCent / 100, dur: s.dur, ativo: s.ativo })
 export const toBloq = (k: PBloq): Bloqueio => ({ id: k.id, barberId: k.barberId, data: k.data, ini: k.ini, fim: k.fim, motivo: k.motivo })
 export const toNota = (n: PNota): Nota => ({

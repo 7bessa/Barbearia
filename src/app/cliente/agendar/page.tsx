@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { api } from '@/lib/api-client'
 import Shell, { Cartao, STATUS_TXT, botao, botaoSec, brl, campo, dataBR, hojeBR, somaDias } from '@/components/Shell'
 
-type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string; preco: number; dur: number }[] }
+type Catalogo = { barbeiros: { id: number; nome: string; foto: string }[]; servicos: { id: number; nome: string; preco: number; dur: number }[] }
 type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; preco: number; status: string }
 
 const PASSOS = ['Serviço', 'Barbeiro', 'Data', 'Horário']
@@ -100,7 +100,7 @@ export default function Agendar() {
 
         {passo === 2 && <div className="choice-grid">
           {cat?.barbeiros.map((b) => <button key={b.id} type="button" className="choice-card" aria-pressed={barberId === String(b.id)} onClick={() => { setBarberId(String(b.id)); setPasso(3) }}>
-            <span className="choice-title">{b.nome}</span><span className="choice-detail">Profissional da equipe</span>
+            <span className="barber-choice">{b.foto ? <img className="barber-choice-photo" src={b.foto} alt={`Foto de ${b.nome}`} /> : <span className="barber-photo-fallback" aria-hidden="true">{b.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{b.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
           </button>)}
           {cat && cat.barbeiros.length === 0 && <p className="empty-state">Ainda não há profissionais disponíveis.</p>}
         </div>}

@@ -24,6 +24,11 @@ const telefone = z
 
 // bcrypt só considera os primeiros 72 bytes.
 const senhaForte = z.string().min(8).max(72).regex(/[A-Za-z]/).regex(/\d/)
+const imagemUrl = z.string().max(2048).transform((s) => s.trim()).refine((s) => {
+  if (!s) return true
+  if (s === '/barbershop-ambient.png') return true
+  try { return new URL(s).protocol === 'https:' } catch { return false }
+}, 'Use um link HTTPS válido para a imagem.')
 
 export const loginSchema = z.object({ email, senha: z.string().min(1).max(72) })
 
@@ -62,6 +67,7 @@ export const barbeariaConfigSchema = z.object({
   slug: z.string().max(100).transform((s) => s.trim().toLowerCase()).refine(slugValido),
   corPrimaria: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   corFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  imagemAmbiente: imagemUrl.default('/barbershop-ambient.png'),
 })
 
 export const onboardingSchema = z.object({
@@ -91,6 +97,7 @@ const dinheiro = (n: number) => Math.abs(n * 100 - Math.round(n * 100)) < 1e-6
 
 export const barbeiroSchema = z.object({
   nome: curto(60).refine((s) => s.length >= 2),
+  foto: imagemUrl.optional(),
   comissao: z.number().int().min(0).max(100),
   ativo: z.boolean().optional(),
 })
