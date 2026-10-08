@@ -8,7 +8,7 @@ export default function Termos() {
   return (
     <Pagina titulo="Termos de Uso">
       <p>
-        Ao criar uma conta ou usar o sistema de agendamento da <b>{B.nome}</b> ({B.razaoSocial}, CNPJ {B.cnpj}), você
+        Ao cadastrar uma conta ou usar o sistema de agendamento da <b>{B.nome}</b> ({B.razaoSocial}, CNPJ {B.cnpj}), você
         concorda com estes termos. Vigentes desde {B.vigenteDesde}.
       </p>
       <Secao titulo="1. O serviço">

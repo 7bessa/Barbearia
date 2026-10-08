@@ -19,19 +19,19 @@ export default async function Home() {
     <main className="home-page">
       <header className="home-nav">
         <Link href="/" className="home-brand"><Image src={B.logo} alt="" width={32} height={32} />{nome}</Link>
-        <div className="inline-row"><Link href="/login" className="link-muted">Entrar</Link><Link href="/cadastro" className="button button-primary">Criar conta</Link></div>
+        <div className="inline-row"><Link href="/login" className="link-muted">Entrar</Link><Link href="/cadastro" className="button button-primary">Cadastrar-se</Link></div>
       </header>
       <section className="home-hero">
         <Image className="home-mark" src={B.logo} alt="" width={76} height={76} priority />
         <p className="eyebrow">BARBEARIA · GOIÂNIA</p>
         <h1>{nome}</h1>
         <p>{slogan}. Escolha seu serviço, profissional e horário.</p>
-        <div className="home-actions"><Link href={linkAgendamento} className="button button-primary">Agendar horário</Link><Link href="/cadastro" className="button button-secondary">Criar conta</Link></div>
+        <div className="home-actions"><Link href={linkAgendamento} className="button button-primary">Marcar horário</Link><Link href="/cadastro" className="button button-secondary">Cadastrar-se</Link></div>
       </section>
       <section className="home-section home-info">
         <div><span className="eyebrow">NO SEU TEMPO</span><h2>Seu próximo horário começa aqui.</h2></div>
         <p>Veja os horários disponíveis e marque seu atendimento com a equipe.</p>
-        <div className="home-links"><Link href="/criar-barbearia" className="link-muted">Cadastrar minha barbearia</Link><Link href="/termos" className="link-muted">Termos de uso</Link><Link href="/privacidade" className="link-muted">Privacidade</Link><span>{B.telefone}</span></div>
+        <div className="home-links"><Link href="/criar-barbearia" className="link-muted">Abrir minha barbearia online</Link><Link href="/termos" className="link-muted">Termos de uso</Link><Link href="/privacidade" className="link-muted">Privacidade</Link><span>{B.telefone}</span></div>
       </section>
     </main>
   )

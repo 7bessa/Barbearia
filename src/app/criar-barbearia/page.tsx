@@ -69,7 +69,7 @@ export default function CriarBarbearia() {
       }),
     })
     setSalvando(false)
-    if (!r.ok) return setErro(r.data?.erro ?? 'Não foi possível criar a barbearia.')
+    if (!r.ok) return setErro(r.data?.erro ?? 'Não foi possível abrir a barbearia online.')
 
     router.replace('/admin/dashboard')
     router.refresh()
@@ -105,7 +105,7 @@ export default function CriarBarbearia() {
         <label>Confirmar senha<input className="field" type="password" autoComplete="new-password" value={dados.confirmarSenha} onChange={(e) => mudar('confirmarSenha', e.target.value)} minLength={8} maxLength={72} required /></label>
         <label className="check-label"><input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} /><span>Aceito os <Link href="/termos" target="_blank" className="text-link">termos de uso</Link> e a <Link href="/privacidade" target="_blank" className="text-link">política de privacidade</Link>.</span></label>
         {erro && <p className="error" role="alert">{erro}</p>}
-        <button disabled={salvando} className="button button-primary">{salvando ? 'Criando...' : 'Criar barbearia'}</button>
+        <button disabled={salvando} className="button button-primary">{salvando ? 'Preparando sua barbearia...' : 'Abrir minha barbearia online'}</button>
         <p className="muted">Já tem acesso? <Link href="/login" className="text-link">Entrar</Link></p>
       </form>
     </div>

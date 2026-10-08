@@ -109,10 +109,10 @@ export default function Dashboard() {
       {erro && <p className="error" role="alert">{erro}</p>}
       {catalogo && (!catalogo.barbeiros.length || !catalogo.servicos.length) && (
         <Cartao titulo="Finalize a configuração da sua agenda">
-          <p className="muted">Adicione pelo menos um profissional e um serviço para seus clientes conseguirem reservar pelo link público.</p>
+          <p className="muted">Cadastre pelo menos um profissional e um serviço para os clientes conseguirem reservar pelo link público.</p>
           <div className="inline-row">
-            {!catalogo.barbeiros.length && <a className={botao} href="#barbeiros">Adicionar profissional</a>}
-            {!catalogo.servicos.length && <a className={botao} href="#servicos">Adicionar serviço</a>}
+            {!catalogo.barbeiros.length && <a className={botao} href="#barbeiros">Cadastrar profissional</a>}
+            {!catalogo.servicos.length && <a className={botao} href="#servicos">Cadastrar serviço</a>}
           </div>
         </Cartao>
       )}
@@ -134,7 +134,7 @@ export default function Dashboard() {
             </div>
           ))}
         </Cartao>
-        <div className="inline-row"><a className={botaoSec} href="#financeiro">Abrir caixa e relatório</a><a className={botaoSec} href="#equipe">Gerenciar convite da equipe</a></div>
+        <div className="inline-row"><a className={botaoSec} href="#financeiro">Ver caixa e relatório</a><a className={botaoSec} href="#equipe">Convidar profissional</a></div>
       </>}
 
       {visao === 'financeiro' && <div id="financeiro" className="page-section-stack">

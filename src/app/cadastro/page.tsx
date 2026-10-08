@@ -37,7 +37,7 @@ export default function Cadastro() {
           <span className="brand-foot">SEU ESTILO, NO SEU TEMPO</span>
         </section>
         <form onSubmit={enviar} className="auth-form">
-          <h2>Criar conta</h2>
+          <h2>Cadastre-se para agendar</h2>
           <div className="segmented" role="group" aria-label="Tipo de conta">
             {(['cliente', 'barbeiro'] as const).map((p) => <button type="button" key={p} aria-pressed={perfil === p} onClick={() => setPerfil(p)}>{p === 'cliente' ? 'Cliente' : 'Barbeiro'}</button>)}
           </div>
@@ -48,7 +48,7 @@ export default function Cadastro() {
           {perfil === 'barbeiro' && <label>Código de convite<input className={campo} placeholder="Código fornecido pelo responsável" value={f.codigoConvite} onChange={set('codigoConvite')} required /></label>}
           <label className="check-label"><input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} /><span>Aceito os <Link href="/termos" target="_blank" className="text-link">termos de uso</Link> e a <Link href="/privacidade" target="_blank" className="text-link">política de privacidade</Link>.</span></label>
           {erro && <p className="error" role="alert">{erro}</p>}
-          <button className="button button-primary">Criar conta</button>
+          <button className="button button-primary">Cadastrar minha conta</button>
           <p className="muted">Já tem conta? <Link href="/login" className="text-link">Entrar</Link></p>
         </form>
       </div>

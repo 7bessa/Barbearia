@@ -54,7 +54,7 @@ export function AdminBarbeiros() {
       <label>Nome<input className={campo} value={nome} onChange={(e) => setNome(e.target.value)} maxLength={60} required /></label>
       <label>Comissão (%)<input className={campo} type="number" min="0" max="100" step="1" value={comissao} onChange={(e) => setComissao(e.target.value)} required /></label>
       {editando !== null && <label className="check-label"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Profissional ativo</label>}
-      <div className="inline-row"><button className={botao}>{editando ? 'Salvar alterações' : 'Adicionar barbeiro'}</button>{editando !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar edição</button>}</div>
+      <div className="inline-row"><button className={botao}>{editando ? 'Salvar alterações' : 'Cadastrar profissional'}</button>{editando !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar edição</button>}</div>
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Nome</th><th>Comissão</th><th>Acesso</th><th>Status</th><th>Ações</th></tr></thead><tbody>
@@ -94,7 +94,7 @@ export function AdminServicos() {
       <label>Preço (R$)<input className={campo} type="number" min="1" max="9999" step="0.01" value={preco} onChange={(e) => setPreco(e.target.value)} required /></label>
       <label>Duração (minutos)<input className={campo} type="number" min="5" max="480" step="5" value={dur} onChange={(e) => setDur(e.target.value)} required /></label>
       {editando !== null && <label className="check-label"><input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} /> Serviço ativo</label>}
-      <div className="inline-row"><button className={botao}>{editando ? 'Salvar alterações' : 'Adicionar serviço'}</button>{editando !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar edição</button>}</div>
+      <div className="inline-row"><button className={botao}>{editando ? 'Salvar alterações' : 'Cadastrar serviço'}</button>{editando !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar edição</button>}</div>
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Serviço</th><th>Preço</th><th>Duração</th><th>Status</th><th>Ações</th></tr></thead><tbody>
@@ -266,7 +266,7 @@ export function AdminClientes() {
     {selecionado && <Cartao titulo={`Ficha de ${selecionado.cliente.nome}`}>
       <div className="inline-row ficha-summary"><span>{selecionado.cliente.telefone}</span><span>{selecionado.resumo.visitas} visitas</span><span>{selecionado.resumo.faltas} faltas</span><span>{brl(selecionado.resumo.totalGasto ?? 0)} total</span><button className={botaoSec} onClick={() => setSelecionado(null)}>Fechar ficha</button></div>
       <h3>Observações internas</h3><p className="muted">Visíveis apenas para a equipe. Não registre dados sensíveis.</p>
-      <form className="inline-row" onSubmit={salvarNota}><input className={campo} placeholder="Ex.: prefere degradê baixo" value={nota} maxLength={500} onChange={(e) => setNota(e.target.value)} /><button className={botao}>Adicionar observação</button></form>
+      <form className="inline-row" onSubmit={salvarNota}><input className={campo} placeholder="Ex.: prefere degradê baixo" value={nota} maxLength={500} onChange={(e) => setNota(e.target.value)} /><button className={botao}>Anotar preferência</button></form>
       {msg && <p className="error" role="alert">{msg}</p>}
       {selecionado.notas.map((n) => <div className="list-row" key={n.id}><div className="list-main"><p className="list-title">{n.texto}</p><p className="list-meta">{n.autorNome} · {new Date(n.criadaEm).toLocaleDateString('pt-BR')}</p></div><button className="button button-danger" onClick={() => removerNota(n.id)}>Apagar</button></div>)}
       <h3>Histórico de atendimentos</h3>
@@ -360,7 +360,7 @@ export function AdminAgenda() {
       setClienteId(String(idCliente))
     }
     const r = await api<{ erro?: string }>('/api/agendamentos', { method: 'POST', body: JSON.stringify({ servicoId: Number(servicoId), barberId: Number(barberId), clienteId: idCliente, data: dia, hora }) })
-    if (!r.ok) return setReservaMsg(erroApi(r.data, 'Não foi possível criar o agendamento.'))
+    if (!r.ok) return setReservaMsg(erroApi(r.data, 'Não foi possível confirmar o horário.'))
     setReservaMsg('Agendamento criado.'); setHora('')
     setClienteId(''); setClienteNome(''); setClienteTelefone(''); setClienteEmail(''); setConsentimento(false)
     const c = await api<{ clientes: { id: number; nome: string; telefone: string }[] }>('/api/clientes')
@@ -416,7 +416,7 @@ export function BarbeiroBloqueios() {
   async function salvar(e: FormEvent) {
     e.preventDefault(); setMsg('')
     const r = await api<{ erro?: string }>('/api/bloqueios', { method: 'POST', body: JSON.stringify({ data: dia, ini: inicio, fim, motivo: motivo.trim() }) })
-    if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível criar o bloqueio.'))
+    if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível bloquear este horário.'))
     setMsg('Período bloqueado.'); setMotivo(''); carregar()
   }
   async function remover(k: Bloqueio) {
@@ -478,7 +478,7 @@ export function BarbeiroClientes() {
     {selecionado && <Cartao titulo={`Ficha de ${selecionado.cliente.nome}`}>
       <div className="inline-row ficha-summary"><span>{selecionado.cliente.telefone}</span><span>{selecionado.resumo.visitas} visitas</span><span>{selecionado.resumo.faltas} faltas</span><button className={botaoSec} onClick={() => setSelecionado(null)}>Fechar ficha</button></div>
       <h3>Observações internas</h3><p className="muted">Visíveis apenas para a equipe. Não registre dados sensíveis.</p>
-      <form className="inline-row" onSubmit={salvarNota}><input className={campo} placeholder="Ex.: prefere degradê baixo" value={nota} maxLength={500} onChange={(e) => setNota(e.target.value)} /><button className={botao}>Adicionar observação</button></form>
+      <form className="inline-row" onSubmit={salvarNota}><input className={campo} placeholder="Ex.: prefere degradê baixo" value={nota} maxLength={500} onChange={(e) => setNota(e.target.value)} /><button className={botao}>Anotar preferência</button></form>
       {msg && <p className="error" role="alert">{msg}</p>}
       {selecionado.notas.map((n) => <div className="list-row" key={n.id}><div className="list-main"><p className="list-title">{n.texto}</p><p className="list-meta">{n.autorNome} · {new Date(n.criadaEm).toLocaleDateString('pt-BR')}</p></div>{n.autorId === usuarioId && <button className="button button-danger" onClick={() => removerNota(n.id)}>Apagar</button>}</div>)}
       <h3>Histórico de atendimentos</h3>

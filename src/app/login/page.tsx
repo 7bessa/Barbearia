@@ -41,8 +41,8 @@ export default function Login() {
           <label>Senha<input className="field" type="password" placeholder="Sua senha" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required /></label>
           {erro && <p className="error" role="alert">{erro}</p>}
           <button disabled={carregando} className="button button-primary">{carregando ? 'Entrando...' : 'Entrar'}</button>
-          <p className="muted">Ainda não tem conta? <Link href="/cadastro" className="text-link">Criar conta</Link></p>
-          <p className="muted">Tem uma barbearia? <Link href="/criar-barbearia" className="text-link">Criar acesso do responsável</Link></p>
+          <p className="muted">Ainda não tem conta? <Link href="/cadastro" className="text-link">Cadastrar-se</Link></p>
+          <p className="muted">Tem uma barbearia? <Link href="/criar-barbearia" className="text-link">Abrir acesso do responsável</Link></p>
           <Link href="/" className="link-muted">Voltar ao início</Link>
         </form>
       </div>

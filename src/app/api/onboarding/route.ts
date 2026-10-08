@@ -24,7 +24,7 @@ export const POST = seguro(async (req: NextRequest) => {
     prisma.barbearia.findUnique({ where: { slug: d.slug }, select: { id: true } }),
     prisma.usuario.findUnique({ where: { email: d.email }, select: { id: true } }),
   ])
-  if (slugExistente || emailExistente) return erro(409, 'Não foi possível criar a barbearia. Confira o endereço e o e-mail informados.')
+  if (slugExistente || emailExistente) return erro(409, 'Não foi possível abrir a barbearia online. Confira o endereço e o e-mail informados.')
 
   const senhaHash = await hashSenha(d.senha)
   try {
@@ -67,7 +67,7 @@ export const POST = seguro(async (req: NextRequest) => {
     await audit(req, { acao: 'barbearia_criada', resultado: 'ok', userId: usuario.id, barbeariaId: criado.barbearia.id })
     return res
   } catch (e) {
-    if (conflito(e)) return erro(409, 'Não foi possível criar a barbearia. Confira o endereço e o e-mail informados.')
+    if (conflito(e)) return erro(409, 'Não foi possível abrir a barbearia online. Confira o endereço e o e-mail informados.')
     throw e
   }
 })
