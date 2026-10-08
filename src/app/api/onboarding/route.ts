@@ -51,6 +51,13 @@ export const POST = seguro(async (req: NextRequest) => {
       await tx.horario.create({
         data: { id: barbearia.id, barbeariaId: barbearia.id, ...BARBEARIA.horario, dias: [...BARBEARIA.horario.dias] },
       })
+      await tx.servico.createMany({
+        data: [
+          { barbeariaId: barbearia.id, nome: 'Corte', precoCent: 4000, dur: 30 },
+          { barbeariaId: barbearia.id, nome: 'Corte + Barba', precoCent: 6000, dur: 45 },
+          { barbeariaId: barbearia.id, nome: 'Barba', precoCent: 3000, dur: 20 },
+        ],
+      })
       return { barbearia, usuario }
     })
 
