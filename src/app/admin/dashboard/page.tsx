@@ -66,26 +66,25 @@ export default function Dashboard() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    const [c, r, a, cat] = await Promise.all([
+    const [c, a, cat, r] = await Promise.all([
       api<Resumo>(`/api/admin/financeiro/caixa?data=${dia}`),
-      api<Resumo>(`/api/admin/financeiro/relatorio?mes=${mes}`),
       api<{ agendamentos: Ag[] }>('/api/agendamentos'),
       api<Catalogo>('/api/catalogo'),
+      visao === 'financeiro' ? api<Resumo>(`/api/admin/financeiro/relatorio?mes=${mes}`) : Promise.resolve(null),
     ])
     setCaixa(c.ok ? c.data : null)
-    setRel(r.ok ? r.data : null)
+    setRel(r?.ok ? r.data : null)
     if (a.ok && a.data) setAgendamentos(a.data.agendamentos)
     if (cat.ok && cat.data) setCatalogo(cat.data)
     setCarregando(false)
-  }, [dia, mes])
+  }, [dia, mes, visao])
 
   useEffect(() => { carregar() }, [carregar])
 
   const hoje = useMemo(() => {
     const itens = agendamentos.filter((a) => a.data === hojeBR())
     const pendentes = itens.filter((a) => a.status === 'agendado')
-    const realizados = agendamentos.filter((a) => a.status === 'concluido')
-    return { itens, pendentes, realizados }
+    return { itens, pendentes }
   }, [agendamentos])
 
   async function gerarConvite() {
@@ -102,12 +101,13 @@ export default function Dashboard() {
 
   const nomeServico = (id: number) => catalogo?.servicos.find((s) => s.id === id)?.nome ?? 'Serviço'
   const nomeBarbeiro = (id: number) => catalogo?.barbeiros.find((b) => b.id === id)?.nome ?? 'Equipe'
-  const proximos = [...hoje.pendentes].sort((a, b) => a.hora.localeCompare(b.hora)).slice(0, 5)
+  const agora = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
+  const pendencias = agendamentos.filter((a) => a.status === 'agendado' && (a.data < hojeBR() || (a.data === hojeBR() && a.hora < agora))).sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`))
 
   return (
     <Shell titulo="Painel do dono">
       {erro && <p className="error" role="alert">{erro}</p>}
-      {catalogo && (!catalogo.barbeiros.length || !catalogo.servicos.length) && (
+      {visao !== 'resumo' && catalogo && (!catalogo.barbeiros.length || !catalogo.servicos.length) && (
         <Cartao titulo="Finalize a configuração da sua agenda">
           <p className="muted">Cadastre pelo menos um profissional e um serviço para os clientes conseguirem reservar pelo link público.</p>
           <div className="inline-row">
@@ -118,23 +118,30 @@ export default function Dashboard() {
       )}
 
       {visao === 'resumo' && <>
-        <div className="grid-cards">
-          <Kpi titulo="Agendamentos hoje" valor={String(hoje.pendentes.length)} detalhe={`${hoje.itens.length} no total`} />
-          <Kpi titulo="Faturamento hoje" valor={brl(caixa?.bruto ?? 0)} detalhe={`Previsto ${brl(caixa?.previsto ?? 0)}`} />
-          <Kpi titulo="Aguardando baixa" valor={String(hoje.pendentes.length)} />
-          <Kpi titulo="Faltas no mês" valor={String(rel?.faltas ?? 0)} detalhe={`${rel?.taxaFalta ?? 0}% do movimento`} />
-          <Kpi titulo="Atendimentos realizados" valor={String(hoje.realizados.length)} detalhe="Histórico total disponível" />
-          <Kpi titulo="Barbeiros ativos" valor={String(catalogo?.barbeiros.length ?? 0)} />
+        <div className="today-dashboard">
+          <Cartao titulo="Faturamento de hoje" className="today-money">
+            <strong className="today-money-value">{brl(caixa?.bruto ?? 0)}</strong>
+            <p className="muted">{caixa?.atendimentos ?? 0} atendimento(s) com pagamento confirmado.</p>
+            <div className="today-money-detail"><span>Em aberto hoje</span><strong>{brl(caixa?.previsto ?? 0)}</strong></div>
+            <a className={botaoSec} href="#financeiro">Ver caixa completo</a>
+          </Cartao>
+          <Cartao titulo={`Agendamentos de hoje (${hoje.pendentes.length})`} className="today-list-panel">
+            {carregando ? <p className="muted">Carregando agenda...</p> : hoje.pendentes.length === 0 ? <p className="empty-state">Nenhum agendamento pendente para hoje.</p> : <div className="today-list">{[...hoje.pendentes].sort((a, b) => a.hora.localeCompare(b.hora)).map((a) => (
+              <div className="list-row" key={a.id}>
+                <div className="list-main"><p className="list-title">{a.hora} · {a.clienteNome ?? 'Cliente'}</p><p className="list-meta">{nomeServico(a.servicoId)} · {nomeBarbeiro(a.barberId)}</p></div>
+                <span className="status-tag" data-status={a.status}>{brl(a.preco)}</span>
+              </div>
+            ))}</div>}
+          </Cartao>
+          <Cartao titulo={`Pendências de pagamento (${pendencias.length})`} className="today-list-panel">
+            {carregando ? <p className="muted">Conferindo pendências...</p> : pendencias.length === 0 ? <p className="empty-state">Nenhum atendimento sem baixa até agora.</p> : <div className="today-list">{pendencias.map((a) => (
+              <div className="list-row" key={a.id}>
+                <div className="list-main"><p className="list-title">{a.clienteNome ?? 'Cliente'} · {brl(a.preco)}</p><p className="list-meta">{dataBR(a.data)} às {a.hora} · {nomeServico(a.servicoId)}</p></div>
+                <a className={botaoSec} href="#agendamentos">Dar baixa</a>
+              </div>
+            ))}</div>}
+          </Cartao>
         </div>
-        <Cartao titulo="Próximos atendimentos">
-          {carregando ? <p className="muted">Carregando agenda...</p> : proximos.length === 0 ? <p className="empty-state">Nenhum atendimento marcado para hoje.</p> : proximos.map((a) => (
-            <div className="list-row" key={a.id}>
-              <div className="list-main"><p className="list-title">{a.hora} · {a.clienteNome ?? 'Cliente'}</p><p className="list-meta">{nomeServico(a.servicoId)} · {nomeBarbeiro(a.barberId)}</p></div>
-              <span className="status-tag" data-status={a.status}>{brl(a.preco)}</span>
-            </div>
-          ))}
-        </Cartao>
-        <div className="inline-row"><a className={botaoSec} href="#financeiro">Ver caixa e relatório</a><a className={botaoSec} href="#equipe">Convidar profissional</a></div>
       </>}
 
       {visao === 'financeiro' && <div id="financeiro" className="page-section-stack">
