@@ -291,27 +291,32 @@ export function AdminAgendamentos() {
   const [status, setStatus] = useState('')
   const [forma, setForma] = useState('pix')
   const [baixaId, setBaixaId] = useState<number | null>(null)
+  const [produtos, setProdutos] = useState<{ id: number; nome: string; preco: number; quantidade: number; ativo: boolean }[]>([])
+  const [produtoId, setProdutoId] = useState('')
   const [adicionalDescricao, setAdicionalDescricao] = useState('')
   const [adicionalValor, setAdicionalValor] = useState('')
   const [msg, setMsg] = useState('')
   const carregar = useCallback(async () => {
-    const [a, c, b, s, clientes] = await Promise.all([
+    const [a, c, b, s, clientes, p] = await Promise.all([
       api<{ agendamentos: Ag[] }>('/api/agendamentos'), api<Catalogo>('/api/catalogo'),
       api<{ barbeiros: { id: number; nome: string }[] }>('/api/admin/barbeiros'), api<{ servicos: { id: number; nome: string }[] }>('/api/admin/servicos'),
       api<{ clientes: { id: number; faltas: number }[] }>('/api/clientes'),
+      api<{ produtos: { id: number; nome: string; preco: number; quantidade: number; ativo: boolean }[] }>('/api/admin/produtos'),
     ])
     if (a.ok && a.data) setAgendamentos(a.data.agendamentos)
     if (c.ok && c.data) setCatalogo(c.data)
     setNomes({ barbeiros: b.ok && b.data ? b.data.barbeiros : [], servicos: s.ok && s.data ? s.data.servicos : [] })
     if (clientes.ok && clientes.data) setFaltasPorCliente(Object.fromEntries(clientes.data.clientes.map((cliente) => [cliente.id, cliente.faltas])))
+    if (p.ok && p.data) setProdutos(p.data.produtos)
   }, [])
   useEffect(() => { carregar() }, [carregar])
   const lista = agendamentos.filter((a) => (!data || a.data === data) && (!barberId || String(a.barberId) === barberId) && (!status || a.status === status)).sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
   async function mudar(a: Ag, next: string, incluirAdicional = false) {
     setMsg('')
-    const itens = incluirAdicional && adicionalDescricao.trim() && Number(adicionalValor) > 0 ? [{ descricao: adicionalDescricao.trim(), quantidade: 1, valorUnitario: Number(adicionalValor) }] : undefined
+    const produto = produtos.find((item) => item.id === Number(produtoId))
+    const itens = incluirAdicional && produto ? [{ descricao: produto.nome, quantidade: 1, valorUnitario: produto.preco, produtoId: produto.id }] : incluirAdicional && adicionalDescricao.trim() && Number(adicionalValor) > 0 ? [{ descricao: adicionalDescricao.trim(), quantidade: 1, valorUnitario: Number(adicionalValor) }] : undefined
     const r = await api<{ erro?: string }>(`/api/agendamentos/${a.id}`, { method: 'PATCH', body: JSON.stringify({ status: next, formaPagamento: next === 'concluido' ? forma : undefined, itens }) })
-    if (!r.ok) setMsg(erroApi(r.data, 'Não foi possível atualizar o atendimento.')); else { setBaixaId(null); setAdicionalDescricao(''); setAdicionalValor(''); carregar() }
+    if (!r.ok) setMsg(erroApi(r.data, 'Não foi possível atualizar o atendimento.')); else { setBaixaId(null); setProdutoId(''); setAdicionalDescricao(''); setAdicionalValor(''); carregar() }
   }
   const nome = (items: { id: number; nome: string }[] | undefined, id: number) => items?.find((x) => x.id === id)?.nome ?? '—'
   const lembrete = (a: Ag) => {
@@ -331,7 +336,7 @@ export function AdminAgendamentos() {
     </div>
     {msg && <p className="error" role="alert">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Data e hora</th><th>Cliente</th><th>Telefone</th><th>Barbeiro</th><th>Serviço</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {lista.map((a) => { const faltas = a.clienteId ? faltasPorCliente[a.clienteId] ?? 0 : 0; const linkLembrete = lembrete(a); const baixando = baixaId === a.id; return <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}{faltas >= 2 && <span className="no-show-risk">{faltas} faltas</span>}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? baixando ? <div className="module-form"><label>Pagamento<select className={campo} value={forma} onChange={(e) => setForma(e.target.value)}>{[['pix', 'Pix'], ['dinheiro', 'Dinheiro'], ['debito', 'Débito'], ['credito', 'Crédito']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label><label>Produto ou extra (opcional)<input className={campo} value={adicionalDescricao} maxLength={80} placeholder="Ex.: Pomada" onChange={(e) => setAdicionalDescricao(e.target.value)} /></label><label>Valor do extra (R$)<input className={campo} type="number" min="0.01" step="0.01" value={adicionalValor} onChange={(e) => setAdicionalValor(e.target.value)} /></label><div className="inline-row"><button className={botao} onClick={() => mudar(a, 'concluido', true)}>Confirmar pagamento</button><button className={botaoSec} onClick={() => setBaixaId(null)}>Voltar</button></div></div> : <div className="inline-row">{linkLembrete && <a className={botaoSec} href={linkLembrete} target="_blank" rel="noreferrer">Lembrar</a>}<button className={botaoSec} onClick={() => setBaixaId(a.id)}>Dar baixa</button><button className="button button-danger" onClick={() => confirm('Marcar este cliente como falta?') && mudar(a, 'faltou')}>Faltou</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr> })}
+      {lista.map((a) => { const faltas = a.clienteId ? faltasPorCliente[a.clienteId] ?? 0 : 0; const linkLembrete = lembrete(a); const baixando = baixaId === a.id; return <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}{faltas >= 2 && <span className="no-show-risk">{faltas} faltas</span>}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? baixando ? <div className="module-form"><label>Pagamento<select className={campo} value={forma} onChange={(e) => setForma(e.target.value)}>{[['pix', 'Pix'], ['dinheiro', 'Dinheiro'], ['debito', 'Débito'], ['credito', 'Crédito']].map(([v, t]) => <option key={v} value={v}>{t}</option>)}</select></label><label>Produto do estoque (opcional)<select className={campo} value={produtoId} onChange={(e) => setProdutoId(e.target.value)}><option value="">Nenhum produto</option>{produtos.filter((item) => item.ativo && item.quantidade > 0).map((item) => <option key={item.id} value={item.id}>{item.nome} · {brl(item.preco)} · {item.quantidade} un.</option>)}</select></label>{!produtoId && <><label>Produto ou extra avulso (opcional)<input className={campo} value={adicionalDescricao} maxLength={80} placeholder="Ex.: Taxa de barba" onChange={(e) => setAdicionalDescricao(e.target.value)} /></label><label>Valor do extra (R$)<input className={campo} type="number" min="0.01" step="0.01" value={adicionalValor} onChange={(e) => setAdicionalValor(e.target.value)} /></label></>}<div className="inline-row"><button className={botao} onClick={() => mudar(a, 'concluido', true)}>Confirmar pagamento</button><button className={botaoSec} onClick={() => setBaixaId(null)}>Voltar</button></div></div> : <div className="inline-row">{linkLembrete && <a className={botaoSec} href={linkLembrete} target="_blank" rel="noreferrer">Lembrar</a>}<button className={botaoSec} onClick={() => setBaixaId(a.id)}>Dar baixa</button><button className="button button-danger" onClick={() => confirm('Marcar este cliente como falta?') && mudar(a, 'faltou')}>Faltou</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr> })}
       {lista.length === 0 && <tr><td colSpan={8} className="muted">Nenhum agendamento com esses filtros.</td></tr>}
     </tbody></table></div>
   </Cartao>

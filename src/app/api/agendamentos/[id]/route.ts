@@ -70,17 +70,33 @@ export const PATCH = seguro(async (req: NextRequest, ctx: Ctx) => {
     // Baixa com pagamento: grava a forma e congela a % de comissão vigente neste momento.
     if (!p.data.formaPagamento) return erro(400, 'Informe a forma de pagamento')
     const itens = p.data.itens ?? []
-    const adicionalCent = itens.reduce((total, item) => total + centavos(item.valorUnitario) * item.quantidade, 0)
-    const atualizado = await prisma.$transaction(async (tx) => {
+    let atualizado: boolean
+    try { atualizado = await prisma.$transaction(async (tx) => {
       const b = await tx.barbeiro.findFirst({ where: { id: a.barberId, barbeariaId: user.barbeariaId } })
+      const idsProdutos = itens.flatMap((item) => item.produtoId ? [item.produtoId] : [])
+      const produtos = idsProdutos.length ? await tx.produto.findMany({ where: { barbeariaId: user.barbeariaId, ativo: true, id: { in: idsProdutos } } }) : []
+      const itensFinal = itens.map((item) => {
+        const produto = item.produtoId ? produtos.find((p) => p.id === item.produtoId) : undefined
+        if (item.produtoId && !produto) throw new Error('Produto indisponível')
+        return { ...item, descricao: produto?.nome ?? item.descricao, valorUnitCent: produto?.precoCent ?? centavos(item.valorUnitario) }
+      })
+      const adicionalCent = itensFinal.reduce((total, item) => total + item.valorUnitCent * item.quantidade, 0)
       const r = await tx.agendamento.updateMany({
         where: { id: a.id, barbeariaId: user.barbeariaId, status: a.status },
         data: { status: novo, forma: p.data.formaPagamento, comissaoPct: b?.comissao ?? 0, pagoEm: new Date(), adicionalCent },
       })
       if (r.count !== 1) return false
-      if (itens.length) await tx.itemComanda.createMany({ data: itens.map((item) => ({ agendamentoId: a.id, descricao: item.descricao, quantidade: item.quantidade, valorUnitCent: centavos(item.valorUnitario) })) })
+      if (itensFinal.length) await tx.itemComanda.createMany({ data: itensFinal.map((item) => ({ agendamentoId: a.id, descricao: item.descricao, quantidade: item.quantidade, valorUnitCent: item.valorUnitCent, produtoId: item.produtoId })) })
+      for (const item of itensFinal) if (item.produtoId) {
+        const baixado = await tx.produto.updateMany({ where: { id: item.produtoId, barbeariaId: user.barbeariaId, quantidade: { gte: item.quantidade } }, data: { quantidade: { decrement: item.quantidade } } })
+        if (baixado.count !== 1) throw new Error('Estoque insuficiente')
+        await tx.movimentoEstoque.create({ data: { barbeariaId: user.barbeariaId, produtoId: item.produtoId, tipo: 'venda', quantidade: -item.quantidade, descricao: `Venda no atendimento #${a.id}` } })
+      }
       return true
-    })
+    }) } catch (e) {
+      if (e instanceof Error && (e.message === 'Produto indisponível' || e.message === 'Estoque insuficiente')) return erro(409, e.message)
+      throw e
+    }
     if (!atualizado) return erro(409, 'O agendamento mudou. Atualize a tela.')
   } else {
     const r = await prisma.agendamento.updateMany({ where: { id: a.id, barbeariaId: user.barbeariaId, status: a.status }, data: { status: novo, forma: null, comissaoPct: null, pagoEm: null } })

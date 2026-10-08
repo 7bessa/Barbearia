@@ -37,6 +37,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin/dashboard#agenda', label: 'Agenda', end: true, hash: 'agenda' },
     { href: '/admin/dashboard#barbeiros', label: 'Barbeiros', end: true, hash: 'barbeiros' },
     { href: '/admin/dashboard#servicos', label: 'Serviços', end: true, hash: 'servicos' },
+    { href: '/admin/dashboard#estoque', label: 'Estoque', end: true, hash: 'estoque' },
     { href: '/admin/dashboard#agendamentos', label: 'Agendamentos', end: true, hash: 'agendamentos' },
     { href: '/admin/dashboard#configuracoes', label: 'Configurações', end: true, hash: 'configuracoes' },
     { href: '/admin/dashboard#equipe', label: 'Convites e segurança', end: true, hash: 'equipe' },

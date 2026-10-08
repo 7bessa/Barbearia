@@ -5,6 +5,7 @@ import Shell, { Cartao, Kpi, botao, botaoSec, brl, campo, dataBR, hojeBR } from 
 import { AdminAgenda, AdminAgendamentos, AdminBarbeiros, AdminClientes, AdminConfiguracoes, AdminServicos } from '@/components/AdminAreas'
 import AdminDespesas from '@/components/AdminDespesas'
 import AdminFechamentoCaixa from '@/components/AdminFechamentoCaixa'
+import AdminEstoque from '@/components/AdminEstoque'
 
 type Resumo = {
   atendimentos: number; bruto: number; comissoes: number; liquido: number; ticketMedio: number; previsto: number
@@ -14,7 +15,7 @@ type Resumo = {
 type Evento = { ts: string; acao: string; resultado: string; userId: number | null; ip: string | null }
 type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; preco: number; status: string; clienteNome?: string }
 type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }
-type Visao = 'resumo' | 'financeiro' | 'clientes' | 'agenda' | 'barbeiros' | 'servicos' | 'agendamentos' | 'configuracoes' | 'equipe'
+type Visao = 'resumo' | 'financeiro' | 'clientes' | 'agenda' | 'barbeiros' | 'servicos' | 'estoque' | 'agendamentos' | 'configuracoes' | 'equipe'
 
 function ResumoFinanceiro({ r }: { r: Resumo }) {
   return (
@@ -61,7 +62,7 @@ export default function Dashboard() {
   useEffect(() => {
     const sincronizarVisao = () => {
       const view = window.location.hash.slice(1) as Visao
-      setVisao(['financeiro', 'clientes', 'agenda', 'barbeiros', 'servicos', 'agendamentos', 'configuracoes', 'equipe'].includes(view) ? view : 'resumo')
+      setVisao(['financeiro', 'clientes', 'agenda', 'barbeiros', 'servicos', 'estoque', 'agendamentos', 'configuracoes', 'equipe'].includes(view) ? view : 'resumo')
     }
     sincronizarVisao()
     window.addEventListener('hashchange', sincronizarVisao)
@@ -181,6 +182,7 @@ export default function Dashboard() {
       {visao === 'agenda' && <div id="agenda"><AdminAgenda /></div>}
       {visao === 'barbeiros' && <div id="barbeiros"><AdminBarbeiros /></div>}
       {visao === 'servicos' && <div id="servicos"><AdminServicos /></div>}
+      {visao === 'estoque' && <div id="estoque"><AdminEstoque /></div>}
       {visao === 'agendamentos' && <div id="agendamentos"><AdminAgendamentos /></div>}
       {visao === 'configuracoes' && <div id="configuracoes"><AdminConfiguracoes /></div>}
     </Shell>

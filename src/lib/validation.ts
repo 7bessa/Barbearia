@@ -99,6 +99,7 @@ export const statusSchema = z.object({
     descricao: curto(80).refine((s) => s.length >= 2),
     quantidade: z.number().int().min(1).max(99).default(1),
     valorUnitario: z.number().min(0.01).max(999999).refine(dinheiro),
+    produtoId: z.number().int().positive().optional(),
   })).max(20).optional(),
 })
 
@@ -117,6 +118,15 @@ export const servicoSchema = z.object({
   ativo: z.boolean().optional(),
 })
 export const servicoPatchSchema = servicoSchema.partial().refine((o) => Object.keys(o).length > 0)
+
+export const produtoSchema = z.object({
+  nome: curto(80).refine((s) => s.length >= 2),
+  preco: z.number().min(0.01).max(999999).refine(dinheiro),
+  quantidade: z.number().int().min(0).max(999999),
+  estoqueMinimo: z.number().int().min(0).max(999999),
+  ativo: z.boolean().optional(),
+})
+export const produtoPatchSchema = produtoSchema.partial().refine((o) => Object.keys(o).length > 0)
 
 export const horarioSchema = z
   .object({

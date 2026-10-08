@@ -55,6 +55,8 @@ model Barbearia {
   listaEspera  ListaEspera[]
   despesas     Despesa[]
   fechamentosCaixa FechamentoCaixa[]
+  produtos     Produto[]
+  movimentosEstoque MovimentoEstoque[]
 }
 
 model Usuario {
@@ -193,9 +195,41 @@ model ItemComanda {
   descricao      String
   quantidade     Int          @default(1)
   valorUnitCent  Int
+  produtoId      Int?
+  produto        Produto?     @relation(fields: [produtoId], references: [id], onDelete: SetNull)
   criadaEm       DateTime     @default(now())
 
   @@index([agendamentoId])
+}
+
+model Produto {
+  id              Int       @id @default(autoincrement())
+  barbeariaId     Int
+  barbearia       Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  nome            String
+  precoCent       Int
+  quantidade      Int       @default(0)
+  estoqueMinimo   Int       @default(0)
+  ativo           Boolean   @default(true)
+  itensComanda    ItemComanda[]
+  movimentos      MovimentoEstoque[]
+  criadoEm        DateTime  @default(now())
+
+  @@index([barbeariaId, ativo])
+}
+
+model MovimentoEstoque {
+  id           Int       @id @default(autoincrement())
+  barbeariaId  Int
+  barbearia    Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  produtoId    Int
+  produto      Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tipo         String
+  quantidade   Int
+  descricao    String    @default("")
+  criadaEm     DateTime  @default(now())
+
+  @@index([barbeariaId, produtoId, criadaEm])
 }
 
 model Sessao {
