@@ -48,6 +48,7 @@ model Barbearia {
   agendamentos Agendamento[]
   convites     Convite[]
   auditorias   Auditoria[]
+  listaEspera  ListaEspera[]
 }
 
 model Usuario {
@@ -219,4 +220,20 @@ model Auditoria {
 
   @@index([ts])
   @@index([barbeariaId, ts])
+}
+
+model ListaEspera {
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  clienteNome String
+  clienteTel  String
+  servicoId   Int?
+  barberId    Int?
+  data        String?
+  preferencia String    @default("")
+  criadaEm    DateTime  @default(now())
+
+  @@index([barbeariaId, data])
+  @@index([barbeariaId, barberId])
 }

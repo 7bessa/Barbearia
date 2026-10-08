@@ -137,6 +137,14 @@ export const bloqueioSchema = z
   .refine((b) => b.fim > b.ini)
 
 export const clienteNovoSchema = z.object({ nome, telefone, email: email.optional() })
+export const listaEsperaSchema = z.object({
+  nome,
+  telefone,
+  servicoId: z.number().int().positive().optional(),
+  barberId: z.number().int().positive().optional(),
+  data: dataSchema.optional(),
+  preferencia: curto(180).optional(),
+})
 export const notaSchema = z.object({
   texto: z.string().max(1500).transform((s) => limparTexto(s, 500)).refine((s) => s.length > 0),
 })

@@ -2,9 +2,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '@/lib/api-client'
 import Shell, { Cartao, Kpi, STATUS_TXT, botao, botaoSec, brl, campo, dataBR, hojeBR, somaDias } from '@/components/Shell'
-import { BarbeiroBloqueios, BarbeiroClientes } from '@/components/AdminAreas'
+import { BarbeiroBloqueios, BarbeiroClientes, ListaEspera } from '@/components/AdminAreas'
 
-type Catalogo = { servicos: { id: number; nome: string }[] }
+type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }
 type Ag = { id: number; data: string; hora: string; servicoId: number; dur: number; preco: number; status: string; clienteNome?: string; clienteTel?: string; forma?: string | null }
 type Comissao = { mes: string; atendimentos: number; bruto: number; comissao: number; faltas: number; itens?: { data: string; hora: string; servico: string; valor: number; comissao: number }[] }
 const FORMAS = [['pix', 'Pix'], ['dinheiro', 'Dinheiro'], ['debito', 'Débito'], ['credito', 'Crédito']] as const
@@ -79,6 +79,7 @@ export default function Agenda() {
             </div>
           ))}
         </Cartao>
+        <ListaEspera catalogo={cat} />
       </>}
       {visao === 'comissao' && <Cartao id="comissao" titulo={`Minha comissão · ${com?.mes.split('-').reverse().join('/') ?? ''}`}>
         {com ? <><div className="grid-cards"><Kpi titulo="Atendimentos" valor={String(com.atendimentos)} /><Kpi titulo="Faturado" valor={brl(com.bruto)} /><Kpi titulo="Sua comissão" valor={brl(com.comissao)} /><Kpi titulo="Faltas" valor={String(com.faltas)} /></div>

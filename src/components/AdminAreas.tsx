@@ -390,7 +390,7 @@ export function AdminAgenda() {
   if (h) for (let n = minutos(h.abre); n < minutos(h.fecha); n += 30) slots.push(n)
   const itemEm = (bid: number, n: number) => agendamentos.find((a) => a.barberId === bid && a.data === dia && a.status !== 'cancelado' && n >= minutos(a.hora) && n < minutos(a.hora) + a.dur)
   const bloqueioEm = (bid: number, n: number) => bloqueios.find((b) => b.barberId === bid && b.data === dia && n >= minutos(b.ini) && n < minutos(b.fim))
-  return <Cartao titulo="Agenda da equipe">
+  return <><Cartao titulo="Agenda da equipe">
     <div className="inline-row agenda-controls"><button className={botaoSec} aria-label="Dia anterior" onClick={() => setDia(somaDias(dia, -1))}>←</button><input className={campo} type="date" value={dia} onChange={(e) => setDia(e.target.value)} /><button className={botaoSec} aria-label="Próximo dia" onClick={() => setDia(somaDias(dia, 1))}>→</button><button className={botaoSec} onClick={() => setDia(hojeBR())}>Hoje</button><span className="muted">{dataBR(dia)}</span></div>
     <details className="quick-book"><summary>Agendar no balcão</summary><form className="module-form" onSubmit={agendarBalcao}>
       <label>Cliente<select className={campo} value={clienteId} onChange={(e) => setClienteId(e.target.value)} required><option value="">Selecione um cliente</option>{clientes.map((c) => <option key={c.id} value={c.id}>{c.nome} · {c.telefone}</option>)}<option value="novo">Cadastrar novo cliente</option></select></label>
@@ -416,6 +416,48 @@ export function AdminAgenda() {
       })}</tr>)}
       {slots.length === 0 && <tr><td colSpan={(catalogo.barbeiros.length || 0) + 1} className="muted">Não há barbeiros ou horários configurados.</td></tr>}
     </tbody></table></div>}
+  </Cartao><ListaEspera catalogo={catalogo} /></>
+}
+
+type Espera = { id: number; clienteNome: string; clienteTel: string; servicoId: number | null; barberId: number | null; data: string | null; preferencia: string }
+type CatalogoEspera = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }
+export function ListaEspera({ catalogo }: { catalogo: CatalogoEspera | null }) {
+  const [itens, setItens] = useState<Espera[]>([])
+  const [nome, setNome] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [servicoId, setServicoId] = useState('')
+  const [barberId, setBarberId] = useState('')
+  const [data, setData] = useState('')
+  const [preferencia, setPreferencia] = useState('')
+  const [msg, setMsg] = useState('')
+  const carregar = useCallback(async () => { const r = await api<{ itens: Espera[] }>('/api/lista-espera'); if (r.ok && r.data) setItens(r.data.itens) }, [])
+  useEffect(() => { carregar() }, [carregar])
+  const nomeServico = (id: number | null) => catalogo?.servicos.find((item) => item.id === id)?.nome ?? 'qualquer serviço'
+  const nomeBarbeiro = (id: number | null) => catalogo?.barbeiros.find((item) => item.id === id)?.nome ?? 'qualquer profissional'
+  async function salvar(e: FormEvent) {
+    e.preventDefault(); setMsg('')
+    const r = await api<{ erro?: string }>('/api/lista-espera', { method: 'POST', body: JSON.stringify({ nome, telefone, servicoId: servicoId ? Number(servicoId) : undefined, barberId: barberId ? Number(barberId) : undefined, data: data || undefined, preferencia }) })
+    if (!r.ok) return setMsg(erroApi(r.data, 'Não foi possível incluir na lista de espera.'))
+    setNome(''); setTelefone(''); setServicoId(''); setBarberId(''); setData(''); setPreferencia(''); setMsg('Cliente incluído na lista de espera.'); carregar()
+  }
+  async function remover(id: number) { if (!confirm('Remover esta pessoa da lista de espera?')) return; await api(`/api/lista-espera?id=${id}`, { method: 'DELETE' }); carregar() }
+  const whatsapp = (item: Espera) => {
+    const tel = item.clienteTel.replace(/\D/g, ''); if (!tel) return ''
+    const destino = tel.length <= 11 ? `55${tel}` : tel
+    const quando = item.data ? ` em ${dataBR(item.data)}` : ''
+    const texto = `Olá, ${item.clienteNome}! Surgiu uma vaga${quando} para ${nomeServico(item.servicoId)} com ${nomeBarbeiro(item.barberId)}. Você quer confirmar este horário?`
+    return `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`
+  }
+  return <Cartao titulo="Lista de espera">
+    <form className="module-form" onSubmit={salvar}>
+      <label>Nome completo<input className={campo} value={nome} onChange={(e) => setNome(e.target.value)} required /></label><label>WhatsApp<input className={campo} inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} required /></label>
+      <label>Serviço<select className={campo} value={servicoId} onChange={(e) => setServicoId(e.target.value)}><option value="">Qualquer serviço</option>{catalogo?.servicos.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></label>
+      <label>Profissional<select className={campo} value={barberId} onChange={(e) => setBarberId(e.target.value)}><option value="">Qualquer profissional</option>{catalogo?.barbeiros.map((item) => <option key={item.id} value={item.id}>{item.nome}</option>)}</select></label>
+      <label>Data desejada<input className={campo} type="date" value={data} onChange={(e) => setData(e.target.value)} /></label><label>Preferência<input className={campo} value={preferencia} maxLength={180} placeholder="Ex.: manhã ou fim de tarde" onChange={(e) => setPreferencia(e.target.value)} /></label>
+      <div className="inline-row"><button className={botao}>Adicionar à lista</button></div>
+    </form>
+    {msg && <p className="muted" role="status">{msg}</p>}
+    {itens.length === 0 ? <p className="empty-state">Nenhum cliente aguardando vaga.</p> : itens.map((item) => <div className="list-row" key={item.id}><div className="list-main"><p className="list-title">{item.clienteNome} · {nomeServico(item.servicoId)}</p><p className="list-meta">{item.clienteTel} · {item.data ? dataBR(item.data) : 'qualquer dia'} · {nomeBarbeiro(item.barberId)}{item.preferencia ? ` · ${item.preferencia}` : ''}</p></div><div className="inline-row"><a className={botaoSec} href={whatsapp(item)} target="_blank" rel="noreferrer">Abrir WhatsApp</a><button className="button button-danger" onClick={() => remover(item.id)}>Remover</button></div></div>)}
   </Cartao>
 }
 
