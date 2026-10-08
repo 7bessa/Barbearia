@@ -128,6 +128,7 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
 .status-tag[data-status="concluido"] { border-color: rgba(74,222,128,.35); color: var(--green); }
 .status-tag[data-status="cancelado"], .status-tag[data-status="faltou"] { border-color: rgba(248,113,113,.35); color: #fca5a5; }
 .status-tag[data-status="agendado"] { border-color: rgba(251,191,36,.35); color: var(--accent); }
+.no-show-risk { display: block; width: max-content; margin-top: 4px; color: #fca5a5; font-size: .68rem; font-weight: 600; }
 .choice-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 205px), 1fr)); gap: 10px; }
 .choice-card { position: relative; display: grid; gap: 7px; min-width: 0; padding: 15px; border: 1px solid #3f3f46; border-radius: 6px; background: rgba(24,24,27,.76); color: var(--text); text-align: left; cursor: pointer; transition: border-color .15s, background .15s, transform .15s; }
 .choice-card:hover { transform: translateY(-2px); border-color: rgba(251,191,36,.7); }

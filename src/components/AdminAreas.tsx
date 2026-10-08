@@ -283,19 +283,22 @@ export function AdminAgendamentos() {
   const [agendamentos, setAgendamentos] = useState<Ag[]>([])
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null)
   const [nomes, setNomes] = useState<{ barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }>({ barbeiros: [], servicos: [] })
+  const [faltasPorCliente, setFaltasPorCliente] = useState<Record<number, number>>({})
   const [data, setData] = useState('')
   const [barberId, setBarberId] = useState('')
   const [status, setStatus] = useState('')
   const [forma, setForma] = useState('pix')
   const [msg, setMsg] = useState('')
   const carregar = useCallback(async () => {
-    const [a, c, b, s] = await Promise.all([
+    const [a, c, b, s, clientes] = await Promise.all([
       api<{ agendamentos: Ag[] }>('/api/agendamentos'), api<Catalogo>('/api/catalogo'),
       api<{ barbeiros: { id: number; nome: string }[] }>('/api/admin/barbeiros'), api<{ servicos: { id: number; nome: string }[] }>('/api/admin/servicos'),
+      api<{ clientes: { id: number; faltas: number }[] }>('/api/clientes'),
     ])
     if (a.ok && a.data) setAgendamentos(a.data.agendamentos)
     if (c.ok && c.data) setCatalogo(c.data)
     setNomes({ barbeiros: b.ok && b.data ? b.data.barbeiros : [], servicos: s.ok && s.data ? s.data.servicos : [] })
+    if (clientes.ok && clientes.data) setFaltasPorCliente(Object.fromEntries(clientes.data.clientes.map((cliente) => [cliente.id, cliente.faltas])))
   }, [])
   useEffect(() => { carregar() }, [carregar])
   const lista = agendamentos.filter((a) => (!data || a.data === data) && (!barberId || String(a.barberId) === barberId) && (!status || a.status === status)).sort((a, b) => (a.data + a.hora).localeCompare(b.data + b.hora))
@@ -305,6 +308,13 @@ export function AdminAgendamentos() {
     if (!r.ok) setMsg(erroApi(r.data, 'Não foi possível atualizar o atendimento.')); else carregar()
   }
   const nome = (items: { id: number; nome: string }[] | undefined, id: number) => items?.find((x) => x.id === id)?.nome ?? '—'
+  const lembrete = (a: Ag) => {
+    const telefone = (a.clienteTel ?? '').replace(/\D/g, '')
+    if (!telefone) return ''
+    const destino = telefone.length <= 11 ? `55${telefone}` : telefone
+    const texto = `Olá, ${a.clienteNome ?? ''}! Lembrando do seu horário na barbearia em ${dataBR(a.data)} às ${a.hora}. Pode confirmar sua presença?`
+    return `https://wa.me/${destino}?text=${encodeURIComponent(texto)}`
+  }
   return <Cartao titulo="Todos os agendamentos">
     <div className="filter-row">
       <label>Data<input className={campo} type="date" value={data} onChange={(e) => setData(e.target.value)} /></label>
@@ -315,7 +325,7 @@ export function AdminAgendamentos() {
     </div>
     {msg && <p className="error" role="alert">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Data e hora</th><th>Cliente</th><th>Telefone</th><th>Barbeiro</th><th>Serviço</th><th>Valor</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-      {lista.map((a) => <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? <div className="inline-row"><button className={botaoSec} onClick={() => mudar(a, 'concluido')}>Concluir</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr>)}
+      {lista.map((a) => { const faltas = a.clienteId ? faltasPorCliente[a.clienteId] ?? 0 : 0; const linkLembrete = lembrete(a); return <tr key={a.id}><td>{dataBR(a.data)} · {a.hora}</td><td>{a.clienteNome ?? '—'}{faltas >= 2 && <span className="no-show-risk">{faltas} faltas</span>}</td><td>{a.clienteTel ?? '—'}</td><td>{nome(nomes.barbeiros, a.barberId)}</td><td>{nome(nomes.servicos, a.servicoId)}</td><td>{brl(a.preco)}</td><td><span className="status-tag" data-status={a.status}>{a.status}</span></td><td>{a.status === 'agendado' ? <div className="inline-row">{linkLembrete && <a className={botaoSec} href={linkLembrete} target="_blank" rel="noreferrer">Lembrar</a>}<button className={botaoSec} onClick={() => mudar(a, 'concluido')}>Concluir</button><button className="button button-danger" onClick={() => confirm('Marcar este cliente como falta?') && mudar(a, 'faltou')}>Faltou</button><button className="button button-danger" onClick={() => confirm('Cancelar este agendamento?') && mudar(a, 'cancelado')}>Cancelar</button></div> : a.status === 'faltou' ? <button className={botaoSec} onClick={() => mudar(a, 'agendado')}>Reabrir</button> : '—'}</td></tr> })}
       {lista.length === 0 && <tr><td colSpan={8} className="muted">Nenhum agendamento com esses filtros.</td></tr>}
     </tbody></table></div>
   </Cartao>
