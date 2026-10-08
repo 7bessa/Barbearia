@@ -10,7 +10,7 @@ export const GET = seguro(async (req: NextRequest) => {
   if (!r.ok) return r.res
   const barbearia = await prisma.barbearia.findUnique({
     where: { id: r.user.barbeariaId },
-    select: { id: true, nome: true, slogan: true, slug: true, corPrimaria: true, corFundo: true, imagemAmbiente: true },
+    select: { id: true, nome: true, slogan: true, slug: true, corPrimaria: true, corFundo: true, imagemAmbiente: true, capacidadeCadeiras: true },
   })
   if (!barbearia) return erro(404, 'Barbearia não encontrada')
   return resp({ barbearia })
@@ -32,7 +32,7 @@ export const PUT = seguro(async (req: NextRequest) => {
     const barbearia = await prisma.barbearia.update({
       where: { id: r.user.barbeariaId },
       data: p.data,
-      select: { id: true, nome: true, slogan: true, slug: true, corPrimaria: true, corFundo: true, imagemAmbiente: true },
+      select: { id: true, nome: true, slogan: true, slug: true, corPrimaria: true, corFundo: true, imagemAmbiente: true, capacidadeCadeiras: true },
     })
     await audit(req, { acao: 'marca_barbearia_alterada', resultado: 'ok', userId: r.user.id })
     return resp({ barbearia })

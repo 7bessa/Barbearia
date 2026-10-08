@@ -14,7 +14,7 @@ type DetalheCliente = {
   historico: { id: number; data: string; hora: string; status: string; valor: number; forma: string | null; servico: string; barbeiro: string }[]
   notas: { id: number; autorId: number; autorNome: string; texto: string; criadaEm: string }[]
 }
-type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; dur: number; preco: number; status: string; clienteId?: number; clienteNome?: string; clienteTel?: string; forma?: string | null }
+type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; dur: number; preco: number; cadeira?: number; status: string; clienteId?: number; clienteNome?: string; clienteTel?: string; forma?: string | null }
 type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string; preco: number; dur: number }[]; horario: Horario }
 type Horario = { abre: string; fecha: string; almocoIni: string | null; almocoFim: string | null; dias: number[] }
 type Bloqueio = { id: number; barberId: number; data: string; ini: string; fim: string; motivo: string }
@@ -145,7 +145,7 @@ export function AdminConfiguracoes() {
   </Cartao></>
 }
 
-type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string; imagemAmbiente: string }
+type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string; imagemAmbiente: string; capacidadeCadeiras: number }
 const corHex = (valor: string, padrao: string) => /^#[0-9a-fA-F]{6}$/.test(valor) ? valor : padrao
 
 function AdminMarca() {
@@ -167,7 +167,7 @@ function AdminMarca() {
 
   const link = marca ? `${origem}/agendar/${marca.slug}` : ''
   const estilo = marca ? { '--brand-preview-bg': marca.corFundo, '--brand-preview-accent': marca.corPrimaria } as CSSProperties : undefined
-  function alterar(chave: keyof Marca, valor: string) { setMarca((atual) => atual ? { ...atual, [chave]: valor } : atual) }
+  function alterar(chave: keyof Marca, valor: string | number) { setMarca((atual) => atual ? { ...atual, [chave]: valor } : atual) }
 
   async function salvar(e: FormEvent) {
     e.preventDefault()
@@ -176,7 +176,7 @@ function AdminMarca() {
     setSalvando(true)
     const r = await api<{ barbearia?: Marca; erro?: string }>('/api/admin/barbearia', {
       method: 'PUT',
-      body: JSON.stringify({ nome: marca.nome, slogan: marca.slogan, slug: marca.slug, corPrimaria: marca.corPrimaria, corFundo: marca.corFundo, imagemAmbiente: marca.imagemAmbiente }),
+      body: JSON.stringify({ nome: marca.nome, slogan: marca.slogan, slug: marca.slug, corPrimaria: marca.corPrimaria, corFundo: marca.corFundo, imagemAmbiente: marca.imagemAmbiente, capacidadeCadeiras: marca.capacidadeCadeiras }),
     })
     setSalvando(false)
     if (!r.ok || !r.data?.barbearia) return setMsg(erroApi(r.data, 'Não foi possível salvar a identidade.'))
@@ -207,6 +207,7 @@ function AdminMarca() {
         <label>Frase curta<input className={campo} value={marca.slogan} maxLength={100} onChange={(e) => alterar('slogan', e.target.value)} /></label>
         <label>Endereço do link<input className={campo} value={marca.slug} maxLength={48} autoCapitalize="none" autoCorrect="off" onChange={(e) => alterar('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-'))} required /></label>
         <label>Foto do ambiente (link HTTPS)<input className={campo} type="url" value={marca.imagemAmbiente} maxLength={2048} placeholder="https://..." onChange={(e) => alterar('imagemAmbiente', e.target.value)} /></label>
+        <label>Cadeiras em operação<input className={campo} type="number" min="1" max="30" value={marca.capacidadeCadeiras} onChange={(e) => alterar('capacidadeCadeiras', Number(e.target.value))} required /></label>
         <label className="brand-color-field">Cor principal<input type="color" value={marca.corPrimaria} onChange={(e) => alterar('corPrimaria', e.target.value)} /></label>
         <label className="brand-color-field">Cor de fundo<input type="color" value={marca.corFundo} onChange={(e) => alterar('corFundo', e.target.value)} /></label>
       </div>
@@ -411,7 +412,7 @@ export function AdminAgenda() {
         const weekday = new Date(`${dia}T12:00:00Z`).getUTCDay()
         const fechado = !catalogo.horario.dias.includes(weekday)
         const almoco = !ag && !bloqueio && catalogo.horario.almocoIni !== null && catalogo.horario.almocoFim !== null && n >= minutos(catalogo.horario.almocoIni) && n < minutos(catalogo.horario.almocoFim)
-        return <td key={b.id} className={ag ? 'calendar-booked' : bloqueio || fechado || almoco ? 'calendar-blocked' : ''}>{ag ? isInicio ? <><strong>{ag.clienteNome || 'Cliente'}</strong><small>{ag.hora} · {ag.dur} min · {brl(ag.preco)}</small></> : <span className="muted">continua</span> : bloqueio ? <><strong>Bloqueado</strong><small>{bloqueio.motivo || 'Indisponível'}</small></> : fechado ? <span className="muted">Fechado</span> : almoco ? <span className="muted">Almoço</span> : <span className="calendar-free">Livre</span>}</td>
+        return <td key={b.id} className={ag ? 'calendar-booked' : bloqueio || fechado || almoco ? 'calendar-blocked' : ''}>{ag ? isInicio ? <><strong>{ag.clienteNome || 'Cliente'}</strong><small>{ag.hora} · {ag.dur} min · Cadeira {ag.cadeira ?? 1}</small></> : <span className="muted">continua</span> : bloqueio ? <><strong>Bloqueado</strong><small>{bloqueio.motivo || 'Indisponível'}</small></> : fechado ? <span className="muted">Fechado</span> : almoco ? <span className="muted">Almoço</span> : <span className="calendar-free">Livre</span>}</td>
       })}</tr>)}
       {slots.length === 0 && <tr><td colSpan={(catalogo.barbeiros.length || 0) + 1} className="muted">Não há barbeiros ou horários configurados.</td></tr>}
     </tbody></table></div>}

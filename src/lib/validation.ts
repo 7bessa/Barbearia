@@ -68,6 +68,7 @@ export const barbeariaConfigSchema = z.object({
   corPrimaria: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   corFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   imagemAmbiente: imagemUrl.default('/barbershop-ambient.png'),
+  capacidadeCadeiras: z.number().int().min(1).max(30).default(1),
 })
 
 export const onboardingSchema = z.object({

@@ -154,7 +154,7 @@ test('onboarding valida identidade, responsável e aceite dos termos', () => {
 
 const ag = (o: Partial<Agendamento>): Agendamento => ({
   id: 1, clienteId: 1, clienteNome: 'A', clienteTel: '', barberId: 1, servicoId: 1, data: '2026-01-05', hora: '09:00',
-  dur: 30, preco: 40, status: 'concluido', criadoEm: '', forma: 'pix', comissaoPct: 40, ...o,
+  dur: 30, preco: 40, cadeira: 1, status: 'concluido', criadoEm: '', forma: 'pix', comissaoPct: 40, ...o,
 })
 const nomes: Nomes = { barb: new Map([[1, 'João']]), serv: new Map([[1, 'Corte']]) }
 

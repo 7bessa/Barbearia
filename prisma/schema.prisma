@@ -36,6 +36,7 @@ model Barbearia {
   corPrimaria  String        @default("#fbbf24")
   corFundo     String        @default("#09090b")
   imagemAmbiente String      @default("/barbershop-ambient.png")
+  capacidadeCadeiras Int     @default(1)
   ativa        Boolean       @default(true)
   criadaEm     DateTime      @default(now())
   usuarios     Usuario[]
@@ -161,6 +162,7 @@ model Agendamento {
   hora        String // HH:MM
   dur         Int
   precoCent   Int
+  cadeira     Int           @default(1)
   status      Status    @default(agendado)
   criadoEm    DateTime  @default(now())
   forma       Forma?

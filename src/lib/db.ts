@@ -30,7 +30,7 @@ export type Nota = { id: number; clienteId: number; autorId: number; autorNome: 
 export type Agendamento = {
   id: number; clienteId: number; clienteNome: string; clienteTel: string
   barberId: number; servicoId: number; data: string; hora: string
-  dur: number; preco: number; status: Status; criadoEm: string
+  dur: number; preco: number; cadeira: number; status: Status; criadoEm: string
   forma?: Forma; comissaoPct?: number; pagoEm?: string // preenchidos ao concluir (snapshot da comissão)
 }
 
@@ -47,7 +47,7 @@ export const toNota = (n: PNota): Nota => ({
 })
 export const toAg = (a: PAg): Agendamento => ({
   id: a.id, clienteId: a.clienteId ?? 0, clienteNome: a.clienteNome, clienteTel: a.clienteTel,
-  barberId: a.barberId, servicoId: a.servicoId, data: a.data, hora: a.hora, dur: a.dur, preco: a.precoCent / 100,
+  barberId: a.barberId, servicoId: a.servicoId, data: a.data, hora: a.hora, dur: a.dur, preco: a.precoCent / 100, cadeira: a.cadeira,
   status: a.status, criadoEm: a.criadoEm.toISOString(),
   forma: a.forma ?? undefined, comissaoPct: a.comissaoPct ?? undefined, pagoEm: a.pagoEm?.toISOString(),
 })
@@ -105,7 +105,22 @@ export async function horarioValido(barbeariaId: number, barberId: number, data:
   return regraHorario(await contexto(barbeariaId, barberId, data, cx), data, hora, dur, staff)
 }
 export async function horariosLivres(barbeariaId: number, barberId: number, data: string, dur: number, staff = false) {
-  return horariosLivresDe(await contexto(barbeariaId, barberId, data, prisma), data, dur, staff)
+  const [ctx, barbearia, marcados] = await Promise.all([
+    contexto(barbeariaId, barberId, data, prisma),
+    prisma.barbearia.findUniqueOrThrow({ where: { id: barbeariaId }, select: { capacidadeCadeiras: true } }),
+    prisma.agendamento.findMany({ where: { barbeariaId, data, status: 'agendado' }, select: { hora: true, dur: true, cadeira: true } }),
+  ])
+  return horariosLivresDe(ctx, data, dur, staff).filter((hora) => cadeiraLivre(marcados, hora, dur, barbearia.capacidadeCadeiras) !== null)
+}
+
+type OcupacaoCadeira = { hora: string; dur: number; cadeira: number }
+const cadeiraLivre = (marcados: OcupacaoCadeira[], hora: string, dur: number, capacidade: number) => {
+  const inicio = Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3))
+  for (let cadeira = 1; cadeira <= capacidade; cadeira++) {
+    const ocupada = marcados.some((a) => a.cadeira === cadeira && inicio < Number(a.hora.slice(0, 2)) * 60 + Number(a.hora.slice(3)) + a.dur && inicio + dur > Number(a.hora.slice(0, 2)) * 60 + Number(a.hora.slice(3)))
+    if (!ocupada) return cadeira
+  }
+  return null
 }
 
 // Checa o horário e grava dentro de uma transação com trava por barbeiro: dois pedidos simultâneos
@@ -118,9 +133,16 @@ export async function agendar(
 ): Promise<{ ok: true; a: Agendamento } | { ok: false; motivo: string }> {
   try {
     return await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${barbeariaId}::bigint)`
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${barberId}::bigint)`
       const motivo = await horarioValido(barbeariaId, barberId, data, hora, sv.dur, staff, tx)
       if (motivo) return { ok: false as const, motivo }
+      const [barbearia, marcados] = await Promise.all([
+        tx.barbearia.findUniqueOrThrow({ where: { id: barbeariaId }, select: { capacidadeCadeiras: true } }),
+        tx.agendamento.findMany({ where: { barbeariaId, data, status: 'agendado' }, select: { hora: true, dur: true, cadeira: true } }),
+      ])
+      const cadeira = cadeiraLivre(marcados, hora, sv.dur, barbearia.capacidadeCadeiras)
+      if (cadeira === null) return { ok: false as const, motivo: 'cadeira_ocupada' }
       let clienteId = alvo.id ?? null
       if (!clienteId && alvo.publico) {
         let cliente = await tx.usuario.findUnique({ where: { barbeariaId_telefone: { barbeariaId, telefone: alvo.telefone } } })
@@ -134,7 +156,7 @@ export async function agendar(
         if (cliente?.role === 'cliente') clienteId = cliente.id
       }
       const row = await tx.agendamento.create({
-        data: { barbeariaId, clienteId, clienteNome: alvo.nome, clienteTel: alvo.telefone, barberId, servicoId: sv.id, data, hora, dur: sv.dur, precoCent: centavos(sv.preco) },
+        data: { barbeariaId, clienteId, clienteNome: alvo.nome, clienteTel: alvo.telefone, barberId, servicoId: sv.id, data, hora, dur: sv.dur, precoCent: centavos(sv.preco), cadeira },
       })
       return { ok: true as const, a: toAg(row) }
     })
