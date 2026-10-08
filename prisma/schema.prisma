@@ -38,6 +38,9 @@ model Barbearia {
   corFundo     String        @default("#09090b")
   imagemAmbiente String      @default("/barbershop-ambient.png")
   capacidadeCadeiras Int     @default(1)
+  plano        String        @default("essencial")
+  assinaturaStatus String    @default("ativa")
+  testeAte     DateTime?
   ativa        Boolean       @default(true)
   criadaEm     DateTime      @default(now())
   usuarios     Usuario[]

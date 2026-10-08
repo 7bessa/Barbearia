@@ -145,7 +145,7 @@ export function AdminConfiguracoes() {
   </Cartao></>
 }
 
-type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string; imagemAmbiente: string; capacidadeCadeiras: number }
+type Marca = { id: number; nome: string; slogan: string; slug: string; corPrimaria: string; corFundo: string; imagemAmbiente: string; capacidadeCadeiras: number; plano: string; assinaturaStatus: string; testeAte: string | null }
 const corHex = (valor: string, padrao: string) => /^#[0-9a-fA-F]{6}$/.test(valor) ? valor : padrao
 
 function AdminMarca() {
@@ -202,6 +202,7 @@ function AdminMarca() {
 
   return <Cartao titulo="Marca e link público">
     <form className="settings-form" onSubmit={salvar}>
+      <div className="list-row"><div className="list-main"><p className="list-title">Plano {marca.plano === 'profissional' ? 'Profissional' : 'Essencial'}</p><p className="list-meta">{marca.assinaturaStatus === 'teste' && marca.testeAte ? `Teste ativo até ${new Date(marca.testeAte).toLocaleDateString('pt-BR')}` : marca.assinaturaStatus === 'ativa' ? 'Assinatura ativa' : `Assinatura ${marca.assinaturaStatus}`}</p></div><span className="status-tag" data-status={marca.assinaturaStatus === 'ativa' || marca.assinaturaStatus === 'teste' ? 'concluido' : 'faltou'}>{marca.assinaturaStatus === 'teste' ? 'Teste' : marca.assinaturaStatus}</span></div>
       <div className="module-form">
         <label>Nome da barbearia<input className={campo} value={marca.nome} maxLength={70} onChange={(e) => alterar('nome', e.target.value)} required /></label>
         <label>Frase curta<input className={campo} value={marca.slogan} maxLength={100} onChange={(e) => alterar('slogan', e.target.value)} /></label>

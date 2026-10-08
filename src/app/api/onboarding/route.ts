@@ -36,6 +36,8 @@ export const POST = seguro(async (req: NextRequest) => {
           slug: d.slug,
           corPrimaria: d.corPrimaria,
           corFundo: d.corFundo,
+          assinaturaStatus: 'teste',
+          testeAte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         },
       })
       const usuario = await tx.usuario.create({
