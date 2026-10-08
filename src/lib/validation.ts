@@ -155,7 +155,16 @@ export const despesaSchema = z.object({
   categoria: curto(40).refine((s) => s.length >= 2),
   descricao: curto(120).refine((s) => s.length >= 2),
   valor: z.number().min(0.01).max(999999).refine(dinheiro),
+  forma: z.enum(FORMAS),
 })
+const valoresPorFormaSchema = z.object({
+  dinheiro: z.number().min(0).max(999999).refine(dinheiro),
+  pix: z.number().min(0).max(999999).refine(dinheiro),
+  debito: z.number().min(0).max(999999).refine(dinheiro),
+  credito: z.number().min(0).max(999999).refine(dinheiro),
+})
+export const caixaAbrirSchema = z.object({ data: dataSchema, abertura: z.number().min(0).max(999999).refine(dinheiro) })
+export const caixaFecharSchema = z.object({ data: dataSchema, contado: valoresPorFormaSchema, observacao: curto(300).optional() })
 export const notaSchema = z.object({
   texto: z.string().max(1500).transform((s) => limparTexto(s, 500)).refine((s) => s.length > 0),
 })

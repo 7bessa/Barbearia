@@ -4,6 +4,7 @@ import { api } from '@/lib/api-client'
 import Shell, { Cartao, Kpi, botao, botaoSec, brl, campo, dataBR, hojeBR } from '@/components/Shell'
 import { AdminAgenda, AdminAgendamentos, AdminBarbeiros, AdminClientes, AdminConfiguracoes, AdminServicos } from '@/components/AdminAreas'
 import AdminDespesas from '@/components/AdminDespesas'
+import AdminFechamentoCaixa from '@/components/AdminFechamentoCaixa'
 
 type Resumo = {
   atendimentos: number; bruto: number; comissoes: number; liquido: number; ticketMedio: number; previsto: number
@@ -154,6 +155,9 @@ export default function Dashboard() {
         </Cartao>
         <Cartao titulo="Despesas do dia">
           <AdminDespesas data={dia} aoAlterar={carregar} />
+        </Cartao>
+        <Cartao titulo="Fechamento de caixa">
+          <AdminFechamentoCaixa data={dia} atualizacao={caixa?.despesas ?? 0} aoAlterar={carregar} />
         </Cartao>
         <Cartao titulo="Relatório mensal">
           <div className="inline-row"><label className="inline-row muted">Mês<input className={campo} type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></label><a className={`${botaoSec} whitespace-nowrap`} href={`/api/admin/financeiro/relatorio?mes=${mes}&formato=csv`}>Baixar CSV</a></div>

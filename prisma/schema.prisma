@@ -51,6 +51,7 @@ model Barbearia {
   auditorias   Auditoria[]
   listaEspera  ListaEspera[]
   despesas     Despesa[]
+  fechamentosCaixa FechamentoCaixa[]
 }
 
 model Usuario {
@@ -252,7 +253,28 @@ model Despesa {
   categoria   String
   descricao   String
   valorCent   Int
+  forma       Forma     @default(dinheiro)
   criadaEm    DateTime  @default(now())
 
+  @@index([barbeariaId, data])
+}
+
+// Um fechamento por dia e por barbearia, usado para conferir o caixa físico.
+model FechamentoCaixa {
+  id             Int       @id @default(autoincrement())
+  barbeariaId    Int
+  barbearia      Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  data           String
+  aberturaCent   Int       @default(0)
+  contadoDinheiroCent Int?
+  contadoPixCent Int?
+  contadoDebitoCent Int?
+  contadoCreditoCent Int?
+  observacao     String    @default("")
+  fechadoEm      DateTime?
+  fechadoPorId   Int?
+  criadaEm       DateTime  @default(now())
+
+  @@unique([barbeariaId, data])
   @@index([barbeariaId, data])
 }

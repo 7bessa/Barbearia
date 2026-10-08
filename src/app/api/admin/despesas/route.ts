@@ -5,12 +5,13 @@ import { prisma } from '@/lib/prisma'
 import { dataSchema, despesaSchema, idSchema } from '@/lib/validation'
 import { erro, exigir, resp, seguro } from '@/lib/auth'
 
-const paraApi = (despesa: { id: number; data: string; categoria: string; descricao: string; valorCent: number; criadaEm: Date }) => ({
+const paraApi = (despesa: { id: number; data: string; categoria: string; descricao: string; valorCent: number; forma: string; criadaEm: Date }) => ({
   id: despesa.id,
   data: despesa.data,
   categoria: despesa.categoria,
   descricao: despesa.descricao,
   valor: despesa.valorCent / 100,
+  forma: despesa.forma,
   criadaEm: despesa.criadaEm.toISOString(),
 })
 
