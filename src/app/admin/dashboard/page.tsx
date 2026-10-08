@@ -6,6 +6,7 @@ import { AdminAgenda, AdminAgendamentos, AdminBarbeiros, AdminClientes, AdminCon
 import AdminDespesas from '@/components/AdminDespesas'
 import AdminFechamentoCaixa from '@/components/AdminFechamentoCaixa'
 import AdminEstoque from '@/components/AdminEstoque'
+import AdminRelatorios from '@/components/AdminRelatorios'
 
 type Resumo = {
   atendimentos: number; bruto: number; comissoes: number; liquido: number; ticketMedio: number; previsto: number
@@ -15,7 +16,7 @@ type Resumo = {
 type Evento = { ts: string; acao: string; resultado: string; userId: number | null; ip: string | null }
 type Ag = { id: number; data: string; hora: string; servicoId: number; barberId: number; preco: number; status: string; clienteNome?: string }
 type Catalogo = { barbeiros: { id: number; nome: string }[]; servicos: { id: number; nome: string }[] }
-type Visao = 'resumo' | 'financeiro' | 'clientes' | 'agenda' | 'barbeiros' | 'servicos' | 'estoque' | 'agendamentos' | 'configuracoes' | 'equipe'
+type Visao = 'resumo' | 'financeiro' | 'relatorios' | 'clientes' | 'agenda' | 'barbeiros' | 'servicos' | 'estoque' | 'agendamentos' | 'configuracoes' | 'equipe'
 
 function ResumoFinanceiro({ r }: { r: Resumo }) {
   return (
@@ -62,7 +63,7 @@ export default function Dashboard() {
   useEffect(() => {
     const sincronizarVisao = () => {
       const view = window.location.hash.slice(1) as Visao
-      setVisao(['financeiro', 'clientes', 'agenda', 'barbeiros', 'servicos', 'estoque', 'agendamentos', 'configuracoes', 'equipe'].includes(view) ? view : 'resumo')
+      setVisao(['financeiro', 'relatorios', 'clientes', 'agenda', 'barbeiros', 'servicos', 'estoque', 'agendamentos', 'configuracoes', 'equipe'].includes(view) ? view : 'resumo')
     }
     sincronizarVisao()
     window.addEventListener('hashchange', sincronizarVisao)
@@ -165,6 +166,8 @@ export default function Dashboard() {
           {rel ? <ResumoFinanceiro r={rel} /> : <p className="muted">Carregando relatório...</p>}
         </Cartao>
       </div>}
+
+      {visao === 'relatorios' && <div id="relatorios"><AdminRelatorios /></div>}
 
       {visao === 'equipe' && <div id="equipe" className="page-section-stack">
         <Cartao titulo="Convite para novo barbeiro">

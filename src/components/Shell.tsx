@@ -33,6 +33,7 @@ const NAV: Record<string, NavItem[]> = {
   admin: [
     { href: '/admin/dashboard', label: 'Painel', end: true },
     { href: '/admin/dashboard#financeiro', label: 'Financeiro', end: true, hash: 'financeiro' },
+    { href: '/admin/dashboard#relatorios', label: 'Relatórios', end: true, hash: 'relatorios' },
     { href: '/admin/dashboard#clientes', label: 'Clientes', end: true, hash: 'clientes' },
     { href: '/admin/dashboard#agenda', label: 'Agenda', end: true, hash: 'agenda' },
     { href: '/admin/dashboard#barbeiros', label: 'Barbeiros', end: true, hash: 'barbeiros' },
