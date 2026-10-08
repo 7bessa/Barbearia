@@ -8,6 +8,7 @@
     "dev": "next dev",
     "dev:local": "node scripts/dev-server.cjs",
     "build": "next build",
+    "vercel-build": "npm run db:deploy && next build",
     "start": "next start",
     "prod": "next build && next start",
     "lint": "eslint src --ext .ts,.tsx",
