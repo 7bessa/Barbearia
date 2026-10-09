@@ -1,5 +1,4 @@
 'use client'
-import Image from 'next/image'
 import Link from 'next/link'
 import { use, useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { api } from '@/lib/api-client'
@@ -15,6 +14,10 @@ const PASSOS = ['Serviço', 'Profissional', 'Data e horário', 'Seus dados']
 
 function corSegura(valor: string | undefined, reserva: string) {
   return valor && /^#[\da-f]{6}$/i.test(valor) ? valor : reserva
+}
+function corDeContraste(hex: string) {
+  const [r, g, b] = [hex.slice(1, 3), hex.slice(3, 5), hex.slice(5, 7)].map((parte) => Number.parseInt(parte, 16))
+  return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#17130a' : '#ffffff'
 }
 
 export default function AgendarPublico({ params }: { params: Promise<{ slug: string }> }) {
@@ -109,7 +112,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
   const barbeiro = catalogo?.barbeiros.find((b) => String(b.id) === barberId)
   const corPrimaria = corSegura(catalogo?.barbearia.corPrimaria, '#fbbf24')
   const corFundo = corSegura(catalogo?.barbearia.corFundo, '#09090b')
-  const estilo = { '--accent': corPrimaria, '--accent-soft': `${corPrimaria}20`, '--shop-bg': corFundo } as CSSProperties
+  const estilo = { '--accent': corPrimaria, '--accent-contrast': corDeContraste(corPrimaria), '--shop-bg': corFundo } as CSSProperties
 
   if (erroCarregar) return <main className="public-booking-page" style={estilo}><section className="public-booking-empty"><Link className="public-back" href="/">Voltar ao início</Link><h1>{erroCarregar === 'nao-encontrada' ? 'Barbearia não encontrada' : 'Não foi possível carregar esta página'}</h1><p>{erroCarregar === 'nao-encontrada' ? 'Confira se o link está correto.' : 'O serviço está temporariamente indisponível. Tente novamente em instantes.'}</p>{erroCarregar === 'indisponivel' && <button type="button" className={botao} onClick={() => { setCatalogo(null); setErroCarregar(''); setTentativa((n) => n + 1) }}>Tentar novamente</button>}</section></main>
   if (!catalogo) return <main className="public-booking-page" style={estilo}><p className="public-loading">Carregando barbearia...</p></main>
@@ -119,7 +122,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
     <main className="public-booking-page" style={estilo}>
       <header className="public-booking-nav">
         <Link className="public-booking-brand" href={`/agendar/${encodeURIComponent(b.slug)}`}>
-          <Image src={b.logo} alt="" width={40} height={40} unoptimized />
+          <span className="public-booking-mark" aria-hidden="true" />
           <span>{b.nome}</span>
         </Link>
         <Link className="public-back" href="/">Página inicial</Link>
