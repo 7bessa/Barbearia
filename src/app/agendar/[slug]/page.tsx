@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { use, useCallback, useEffect, useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import { api } from '@/lib/api-client'
 import { botao, botaoSec, brl, hojeBR, somaDias, dataBR } from '@/components/Shell'
@@ -110,8 +111,8 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
 
   const servico = catalogo?.servicos.find((s) => String(s.id) === servicoId)
   const barbeiro = catalogo?.barbeiros.find((b) => String(b.id) === barberId)
-  const corPrimaria = corSegura(catalogo?.barbearia.corPrimaria, '#fbbf24')
-  const corFundo = corSegura(catalogo?.barbearia.corFundo, '#09090b')
+  const corPrimaria = corSegura(catalogo?.barbearia.corPrimaria, '#D4AF37')
+  const corFundo = corSegura(catalogo?.barbearia.corFundo, '#0A0A0A')
   const estilo = { '--accent': corPrimaria, '--accent-contrast': corDeContraste(corPrimaria), '--shop-bg': corFundo } as CSSProperties
 
   if (erroCarregar) return <main className="public-booking-page" style={estilo}><section className="public-booking-empty"><Link className="public-back" href="/">Voltar ao início</Link><h1>{erroCarregar === 'nao-encontrada' ? 'Barbearia não encontrada' : 'Não foi possível carregar esta página'}</h1><p>{erroCarregar === 'nao-encontrada' ? 'Confira se o link está correto.' : 'O serviço está temporariamente indisponível. Tente novamente em instantes.'}</p>{erroCarregar === 'indisponivel' && <button type="button" className={botao} onClick={() => { setCatalogo(null); setErroCarregar(''); setTentativa((n) => n + 1) }}>Tentar novamente</button>}</section></main>
@@ -160,7 +161,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
 
             {passo === 2 && <div className="choice-grid">
               {catalogo.barbeiros.map((item) => <button key={item.id} type="button" className="choice-card" aria-pressed={barberId === String(item.id)} onClick={() => { setBarberId(String(item.id)); setPasso(3) }}>
-                <span className="barber-choice">{item.foto ? <img className="barber-choice-photo" src={item.foto} alt={`Foto de ${item.nome}`} /> : <span className="barber-photo-fallback" aria-hidden="true">{item.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
+                <span className="barber-choice">{item.foto ? <Image className="barber-choice-photo" src={item.foto} alt={`Foto de ${item.nome}`} width={48} height={48} unoptimized /> : <span className="barber-photo-fallback" aria-hidden="true">{item.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
               </button>)}
               {!catalogo.barbeiros.length && <p className="empty-state">Esta barbearia ainda não tem profissionais disponíveis.</p>}
             </div>}

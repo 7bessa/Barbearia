@@ -160,7 +160,7 @@ test('rotas publicas isolam catalogo e recusam IDs de outra barbearia', async ()
   const reservaValida = await reservarPublico(
     requisicao(`/api/publico/${lojas[0].slug}`, {
       method: 'POST',
-      body: { servicoId: servicos.a, barberId: barbeiros.a, data: dataAmanha(), hora: '10:00', nome: 'Cliente Teste', telefone: '62999990001', aceitoTermos: true },
+      body: { servicoId: servicos.a, barberId: barbeiros.a, data: dataAmanha(), hora: '11:00', nome: 'Cliente Teste', telefone: '62999990001', aceitoTermos: true },
     }),
     { params: Promise.resolve({ slug: lojas[0].slug }) },
   )
@@ -170,7 +170,7 @@ test('rotas publicas isolam catalogo e recusam IDs de outra barbearia', async ()
   const respostaCruzada = await reservarPublico(
     requisicao(`/api/publico/${lojas[0].slug}`, {
       method: 'POST',
-      body: { servicoId: servicos.a, barberId: barbeiros.b, data: dataAmanha(), hora: '11:00', nome: 'Cliente Teste', telefone: '62999990002', aceitoTermos: true },
+      body: { servicoId: servicos.a, barberId: barbeiros.b, data: dataAmanha(), hora: '11:30', nome: 'Cliente Teste', telefone: '62999990002', aceitoTermos: true },
     }),
     { params: Promise.resolve({ slug: lojas[0].slug }) },
   )

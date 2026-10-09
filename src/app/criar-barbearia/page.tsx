@@ -1,10 +1,8 @@
 'use client'
 import { useState, type CSSProperties, type FormEvent } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api-client'
-import { BARBEARIA } from '@/config/barbearia'
 import { normalizarSlug } from '@/lib/slug-barbearia'
 
 type Dados = {
@@ -23,7 +21,7 @@ type Dados = {
 export default function CriarBarbearia() {
   const router = useRouter()
   const [dados, setDados] = useState<Dados>({
-    nomeBarbearia: '', slogan: '', slug: '', corPrimaria: '#fbbf24', corFundo: '#09090b',
+    nomeBarbearia: '', slogan: '', slug: '', corPrimaria: '#c28a45', corFundo: '#100c0a',
     nome: '', telefone: '', email: '', senha: '', confirmarSenha: '',
   })
   const [slugManual, setSlugManual] = useState(false)
@@ -80,12 +78,15 @@ export default function CriarBarbearia() {
   return <main className="auth-page">
     <div className="auth-layout">
       <section className="auth-brand">
-        <Link href="/" aria-label="Voltar ao início"><Image src={BARBEARIA.logo} alt="" width={42} height={42} /></Link>
-        <div><h1>Nova barbearia</h1><p>Crie sua página de agendamento e acesso de administrador.</p></div>
+        <div className="auth-brand-shade" />
+        <Link href="/" aria-label="Voltar ao início" className="auth-wordmark"><span className="auth-mark" aria-hidden="true" /><span>NAVALHA</span></Link>
+        <div className="auth-brand-copy"><p className="auth-kicker">COMECE COM IDENTIDADE</p><h1>A sua barbearia no controle.</h1><p>Publique seu link de agendamento e organize o dia a dia em um só lugar.</p></div>
         <span className="brand-foot">SUA MARCA, SEU ENDEREÇO</span>
       </section>
       <form onSubmit={enviar} className="auth-form">
+        <p className="auth-kicker">PRIMEIRO PASSO</p>
         <h2>Dados da barbearia</h2>
+        <p className="auth-intro">Defina a presença que seus clientes vão encontrar.</p>
         <label>Nome da barbearia<input className="field" value={dados.nomeBarbearia} onChange={(e) => mudarNomeBarbearia(e.target.value)} maxLength={70} autoComplete="organization" required /></label>
         <label>Frase curta<input className="field" value={dados.slogan} onChange={(e) => mudar('slogan', e.target.value)} maxLength={100} /></label>
         <label>Endereço público<input className="field" value={dados.slug} onChange={(e) => { setSlugManual(true); mudar('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').replace(/-{2,}/g, '-')) }} maxLength={48} autoCapitalize="none" autoCorrect="off" required /></label>

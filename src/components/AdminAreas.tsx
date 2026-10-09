@@ -1,5 +1,6 @@
 'use client'
 import { FormEvent, useCallback, useEffect, useState, type CSSProperties } from 'react'
+import Image from 'next/image'
 import { api } from '@/lib/api-client'
 import { Cartao, botao, botaoSec, brl, campo, dataBR, hojeBR, somaDias } from '@/components/Shell'
 import { useAuth } from '@/store/auth'
@@ -60,7 +61,7 @@ export function AdminBarbeiros() {
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
     <div className="table-wrap"><table className="data-table"><thead><tr><th>Nome</th><th>Comissão</th><th>Acesso</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-      {itens.map((b) => <tr key={b.id}><td><span className="barber-list-name">{b.foto ? <img className="barber-list-photo" src={b.foto} alt="" /> : <span className="barber-photo-fallback barber-list-fallback" aria-hidden="true">{b.nome.slice(0, 1)}</span>}{b.nome}</span></td><td>{b.comissao}%</td><td>{b.temLogin ? 'Conta ativa' : 'Sem login'}</td><td><span className="status-tag" data-status={b.ativo ? 'concluido' : 'cancelado'}>{b.ativo ? 'Ativo' : 'Inativo'}</span></td><td><div className="inline-row"><button className={botaoSec} onClick={() => editar(b)}>Editar</button><button className="button button-danger" onClick={() => remover(b)}>Remover</button></div></td></tr>)}
+      {itens.map((b) => <tr key={b.id}><td><span className="barber-list-name">{b.foto ? <Image className="barber-list-photo" src={b.foto} alt="" width={30} height={30} unoptimized /> : <span className="barber-photo-fallback barber-list-fallback" aria-hidden="true">{b.nome.slice(0, 1)}</span>}{b.nome}</span></td><td>{b.comissao}%</td><td>{b.temLogin ? 'Conta ativa' : 'Sem login'}</td><td><span className="status-tag" data-status={b.ativo ? 'concluido' : 'cancelado'}>{b.ativo ? 'Ativo' : 'Inativo'}</span></td><td><div className="inline-row"><button className={botaoSec} onClick={() => editar(b)}>Editar</button><button className="button button-danger" onClick={() => remover(b)}>Remover</button></div></td></tr>)}
       {itens.length === 0 && <tr><td colSpan={5} className="muted">Nenhum barbeiro cadastrado.</td></tr>}
     </tbody></table></div>
   </Cartao>
@@ -158,7 +159,7 @@ function AdminMarca() {
   const carregar = useCallback(async () => {
     const r = await api<{ barbearia: Marca; erro?: string }>('/api/admin/barbearia')
     if (r.ok && r.data) {
-      setMarca({ ...r.data.barbearia, corPrimaria: corHex(r.data.barbearia.corPrimaria, '#fbbf24'), corFundo: corHex(r.data.barbearia.corFundo, '#09090b') })
+      setMarca({ ...r.data.barbearia, corPrimaria: corHex(r.data.barbearia.corPrimaria, '#D4AF37'), corFundo: corHex(r.data.barbearia.corFundo, '#0A0A0A') })
     } else setMsg(erroApi(r.data, 'Não foi possível carregar a identidade da barbearia.'))
     setCarregando(false)
   }, [])
@@ -214,7 +215,7 @@ function AdminMarca() {
       </div>
       <button type="button" className={botaoSec} onClick={() => alterar('slug', normalizarSlug(marca.nome))}>Gerar endereço pelo nome</button>
       <div className="brand-preview" style={estilo}><span>AGENDAMENTO ONLINE</span><strong>{marca.nome || 'Sua barbearia'}</strong><small>{marca.slogan || 'Escolha seu serviço e horário.'}</small></div>
-      {marca.imagemAmbiente && <img className="brand-ambient-preview" src={marca.imagemAmbiente} alt="Prévia do ambiente da barbearia" />}
+      {marca.imagemAmbiente && <Image className="brand-ambient-preview" src={marca.imagemAmbiente} alt="Prévia do ambiente da barbearia" width={520} height={228} unoptimized />}
       <div className="public-link-row">
         <label>Link para compartilhar<input className={campo} value={link} readOnly onFocus={(e) => e.currentTarget.select()} /></label>
         <div className="inline-row"><button type="button" className={botaoSec} onClick={copiarLink}>{copiado ? 'Copiado' : 'Copiar link'}</button><a className="link-muted" href={link} target="_blank" rel="noreferrer">Abrir página pública</a></div>

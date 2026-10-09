@@ -8,7 +8,7 @@ import { audit, getIp } from '@/lib/audit'
 import { erro, resp, seguro, verificarCsrf } from '@/lib/auth'
 
 type Contexto = { params: Promise<{ slug: string }> }
-const COR_PADRAO = '#fbbf24'
+const COR_PADRAO = '#D4AF37'
 const LOGO_PADRAO = '/logo.svg'
 const corSegura = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v) ? v : COR_PADRAO
 const logoSeguro = (v: string) => /^\/[A-Za-z0-9/_-]+\.(svg|png|webp|jpe?g)$/i.test(v) ? v : LOGO_PADRAO

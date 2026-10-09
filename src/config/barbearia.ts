@@ -1,9 +1,9 @@
 // ÚNICO arquivo que você edita para cada cliente (barbearia). Nada disso deve ficar escrito direto nas telas.
 export const BARBEARIA = {
-  nome: 'Barbearia Exemplo',
-  slogan: 'Estilo e tradição',
+  nome: 'Barbearia Navalha de Ouro',
+  slogan: 'Onde a tradição encontra o estilo moderno',
   logo: '/logo.svg',
-  cores: { primaria: '#fbbf24', fundo: '#09090b' },
+  cores: { primaria: '#D4AF37', fundo: '#0A0A0A' },
 
   // Dados legais (usados em /termos e /privacidade)
   razaoSocial: 'Barbearia Exemplo LTDA',

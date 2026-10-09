@@ -109,9 +109,13 @@ export default function Dashboard() {
   const nomeBarbeiro = (id: number) => catalogo?.barbeiros.find((b) => b.id === id)?.nome ?? 'Equipe'
   const agora = new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })
   const pendencias = agendamentos.filter((a) => a.status === 'agendado' && (a.data < hojeBR() || (a.data === hojeBR() && a.hora < agora))).sort((a, b) => `${a.data}${a.hora}`.localeCompare(`${b.data}${b.hora}`))
+  const dashboardCardClass = 'bg-barber-card border border-barber-border rounded-xl p-6 shadow-sm !bg-barber-card !border-barber-border !rounded-xl !shadow-sm'
+  const dashboardHeadingClass = '!min-h-0 !p-0 !pb-4'
+  const dashboardBodyClass = '!p-0'
+  const dashboardTitleClass = 'text-lg font-medium text-gray-200 mb-4'
 
   return (
-    <Shell titulo="Painel do dono">
+    <Shell titulo="Operação de hoje" mainClassName="p-8 !p-8" titleClassName="text-3xl font-serif text-white mb-8 !text-3xl !text-white">
       {erro && <p className="error" role="alert">{erro}</p>}
       {visao !== 'resumo' && catalogo && (!catalogo.barbeiros.length || !catalogo.servicos.length) && (
         <Cartao titulo="Finalize a configuração da sua agenda">
@@ -125,25 +129,25 @@ export default function Dashboard() {
 
       {visao === 'resumo' && <>
         <div className="today-dashboard">
-          <Cartao titulo="Faturamento de hoje" className="today-money">
-            <strong className="today-money-value">{brl(caixa?.bruto ?? 0)}</strong>
+          <Cartao titulo="Faturamento de hoje" className={`today-money ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
+            <strong className="today-money-value text-barber-gold font-bold !text-barber-gold">{brl(caixa?.bruto ?? 0)}</strong>
             <p className="muted">{caixa?.atendimentos ?? 0} atendimento(s) com pagamento confirmado.</p>
-            <div className="today-money-detail"><span>Em aberto hoje</span><strong>{brl(caixa?.previsto ?? 0)}</strong></div>
-            <a className={botaoSec} href="#financeiro">Ver caixa completo</a>
+            <div className="today-money-detail"><span>Em aberto hoje</span><strong className="text-barber-gold font-bold !text-barber-gold">{brl(caixa?.previsto ?? 0)}</strong></div>
+            <a className="block w-full mt-4 border border-white/10 bg-white/5 py-2 text-center text-white transition hover:bg-white/10 rounded-lg" href="#financeiro">Ver caixa completo</a>
           </Cartao>
-          <Cartao titulo={`Agendamentos de hoje (${hoje.pendentes.length})`} className="today-list-panel">
+          <Cartao titulo={`Próximos atendimentos (${hoje.pendentes.length})`} className={`today-list-panel ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
             {carregando ? <p className="muted">Carregando agenda...</p> : hoje.pendentes.length === 0 ? <p className="empty-state">Nenhum agendamento pendente para hoje.</p> : <div className="today-list">{[...hoje.pendentes].sort((a, b) => a.hora.localeCompare(b.hora)).map((a) => (
               <div className="list-row" key={a.id}>
                 <div className="list-main"><p className="list-title">{a.hora} · {a.clienteNome ?? 'Cliente'}</p><p className="list-meta">{nomeServico(a.servicoId)} · {nomeBarbeiro(a.barberId)}</p></div>
-                <span className="status-tag" data-status={a.status}>{brl(a.preco)}</span>
+                <span className="status-tag text-barber-gold font-bold !text-barber-gold" data-status={a.status}>{brl(a.preco)}</span>
               </div>
             ))}</div>}
           </Cartao>
-          <Cartao titulo={`Pendências de pagamento (${pendencias.length})`} className="today-list-panel">
+          <Cartao titulo={`Pendências de pagamento (${pendencias.length})`} className={`today-list-panel ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
             {carregando ? <p className="muted">Conferindo pendências...</p> : pendencias.length === 0 ? <p className="empty-state">Nenhum atendimento sem baixa até agora.</p> : <div className="today-list">{pendencias.map((a) => (
               <div className="list-row" key={a.id}>
-                <div className="list-main"><p className="list-title">{a.clienteNome ?? 'Cliente'} · {brl(a.preco)}</p><p className="list-meta">{dataBR(a.data)} às {a.hora} · {nomeServico(a.servicoId)}</p></div>
-                <a className={botaoSec} href="#agendamentos">Dar baixa</a>
+                <div className="list-main"><p className="list-title">{a.clienteNome ?? 'Cliente'} · <span className="text-barber-gold font-bold !text-barber-gold">{brl(a.preco)}</span></p><p className="list-meta">{dataBR(a.data)} às {a.hora} · {nomeServico(a.servicoId)}</p></div>
+                <a className="inline-flex items-center justify-center bg-transparent border border-barber-gold text-barber-gold hover:bg-barber-gold hover:text-black px-4 py-2 rounded-lg text-sm transition-all" href="#agendamentos">Dar baixa</a>
               </div>
             ))}</div>}
           </Cartao>
