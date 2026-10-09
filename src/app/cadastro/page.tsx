@@ -9,7 +9,7 @@ const campo = 'field'
 export default function Cadastro() {
   const router = useRouter()
   const cadastrar = useAuth((s) => s.cadastrar)
-  const [perfil, setPerfil] = useState<'cliente' | 'barbeiro'>('cliente')
+  const [perfil, setPerfil] = useState<'cliente' | 'barbeiro' | 'recepcionista'>('cliente')
   const [f, setF] = useState({ nome: '', telefone: '', email: '', senha: '', codigoConvite: '' })
   const [aceito, setAceito] = useState(false)
   const [erro, setErro] = useState('')
@@ -19,10 +19,10 @@ export default function Cadastro() {
     e.preventDefault()
     setErro('')
     if (!aceito) return setErro('É preciso aceitar os termos e a política de privacidade.')
-    const msg = await cadastrar({ ...f, aceitoTermos: true, role: perfil, codigoConvite: perfil === 'barbeiro' ? f.codigoConvite : undefined })
+    const msg = await cadastrar({ ...f, aceitoTermos: true, role: perfil, codigoConvite: perfil === 'cliente' ? undefined : f.codigoConvite })
     if (msg) return setErro(msg)
     const u = useAuth.getState().usuario!
-    router.replace(u.role === 'barbeiro' ? '/barbeiro/agenda' : '/cliente/agendar')
+    router.replace(u.role === 'barbeiro' ? '/barbeiro/agenda' : u.role === 'recepcionista' ? '/recepcao/dashboard' : '/cliente/agendar')
     router.refresh()
   }
 
@@ -40,13 +40,13 @@ export default function Cadastro() {
           <h2>Crie sua conta</h2>
           <p className="auth-intro">Deixe seu próximo atendimento mais simples.</p>
           <div className="segmented" role="group" aria-label="Tipo de conta">
-            {(['cliente', 'barbeiro'] as const).map((p) => <button type="button" key={p} aria-pressed={perfil === p} onClick={() => setPerfil(p)}>{p === 'cliente' ? 'Cliente' : 'Barbeiro'}</button>)}
+            {(['cliente', 'barbeiro', 'recepcionista'] as const).map((p) => <button type="button" key={p} aria-pressed={perfil === p} onClick={() => setPerfil(p)}>{p === 'recepcionista' ? 'Atendente' : p === 'cliente' ? 'Cliente' : 'Barbeiro'}</button>)}
           </div>
           <label>Nome completo<input className={campo} placeholder="Seu nome" value={f.nome} onChange={set('nome')} required /></label>
           <label>Telefone<input className={campo} placeholder="Com DDD" inputMode="tel" value={f.telefone} onChange={set('telefone')} required /></label>
           <label>E-mail<span className="auth-field"><span className="field-icon field-icon-mail" aria-hidden="true" /><input className={campo} type="email" placeholder="voce@exemplo.com" value={f.email} onChange={set('email')} required /></span></label>
           <label>Senha<span className="auth-field"><span className="field-icon field-icon-lock" aria-hidden="true" /><input className={campo} type="password" placeholder="Mínimo 8 caracteres, com letra e número" value={f.senha} onChange={set('senha')} required /></span></label>
-          {perfil === 'barbeiro' && <label>Código de convite<input className={campo} placeholder="Código fornecido pelo responsável" value={f.codigoConvite} onChange={set('codigoConvite')} required /></label>}
+          {perfil !== 'cliente' && <label>Código de convite<input className={campo} placeholder="Código fornecido pelo responsável" value={f.codigoConvite} onChange={set('codigoConvite')} required /></label>}
           <label className="check-label"><input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} /><span>Aceito os <Link href="/termos" target="_blank" className="text-link">termos de uso</Link> e a <Link href="/privacidade" target="_blank" className="text-link">política de privacidade</Link>.</span></label>
           {erro && <p className="error" role="alert">{erro}</p>}
           <button className="button button-primary">Cadastrar minha conta</button>

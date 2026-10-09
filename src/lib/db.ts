@@ -180,19 +180,21 @@ export async function criarUsuario(d: NovoUsuario, cx: Cx = prisma) {
 }
 
 export class ConviteInvalido extends Error {}
-// Cadastro público: para barbeiro, cria o usuário e consome o convite NA MESMA transação (ou nada é gravado).
+// Cadastro de equipe consome o convite na mesma transação que cria o usuário.
 export function cadastrar(d: NovoUsuario, codigoConvite?: string) {
   return prisma.$transaction(async (tx) => {
-    const tenantDoCadastro = d.role === 'barbeiro'
+    const equipe = d.role === 'barbeiro' || d.role === 'recepcionista'
+    const tenantDoCadastro = equipe
       ? (await tx.convite.findFirst({
           where: { hash: sha256((codigoConvite ?? '').trim()), usadoPorId: null, expira: { gt: new Date() } },
           select: { barbeariaId: true },
         }))?.barbeariaId
       : d.barbeariaId
     if (!tenantDoCadastro) throw new ConviteInvalido()
+    if (equipe && papelDoConvite(codigoConvite ?? '') !== d.role) throw new ConviteInvalido()
     const barbeariaId = tenantDoCadastro
     const u = await criarUsuario({ ...d, barbeariaId }, tx)
-    if (d.role === 'barbeiro' && !(await usarConvite(codigoConvite ?? '', u.id, barbeariaId, tx))) throw new ConviteInvalido()
+    if (equipe && !(await usarConvite(codigoConvite ?? '', u.id, barbeariaId, tx))) throw new ConviteInvalido()
     return u
   })
 }
@@ -229,10 +231,13 @@ export async function removerUsuario(id: number, barbeariaId: number) {
   })
 }
 
-// ---------- convites de barbeiro: aleatório, uso único, com validade; só o hash fica guardado ----------
-export async function criarConvite(adminId: number, barbeariaId: number) {
+// ---------- convites de equipe: uso único, com validade; só o hash fica guardado ----------
+export type PapelConvite = 'barbeiro' | 'recepcionista'
+export const papelDoConvite = (codigo: string): PapelConvite => codigo.trim().startsWith('R-') ? 'recepcionista' : 'barbeiro'
+
+export async function criarConvite(adminId: number, barbeariaId: number, papel: PapelConvite = 'barbeiro') {
   await prisma.convite.deleteMany({ where: { barbeariaId, OR: [{ expira: { lt: new Date() } }, { usadoPorId: { not: null } }] } })
-  const codigo = randomBytes(9).toString('base64url')
+  const codigo = `${papel === 'recepcionista' ? 'R' : 'B'}-${randomBytes(9).toString('base64url')}`
   const expira = new Date(Date.now() + BARBEARIA.conviteHoras * 3600 * 1000)
   await prisma.convite.create({ data: { hash: sha256(codigo), barbeariaId, criadoPorId: adminId, expira } })
   return { codigo, expira: expira.toISOString() }

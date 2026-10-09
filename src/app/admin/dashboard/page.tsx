@@ -55,7 +55,7 @@ export default function Dashboard() {
   const [rel, setRel] = useState<Resumo | null>(null)
   const [agendamentos, setAgendamentos] = useState<Ag[]>([])
   const [catalogo, setCatalogo] = useState<Catalogo | null>(null)
-  const [convite, setConvite] = useState<{ codigo: string; expira: string } | null>(null)
+  const [convite, setConvite] = useState<{ codigo: string; expira: string; role: 'barbeiro' | 'recepcionista' } | null>(null)
   const [eventos, setEventos] = useState<Evento[]>([])
   const [erro, setErro] = useState('')
   const [carregando, setCarregando] = useState(true)
@@ -93,10 +93,10 @@ export default function Dashboard() {
     return { itens, pendentes }
   }, [agendamentos])
 
-  async function gerarConvite() {
+  async function gerarConvite(role: 'barbeiro' | 'recepcionista') {
     setErro('')
-    const r = await api<{ codigo: string; expira: string; erro?: string }>('/api/admin/convites', { method: 'POST' })
-    if (r.ok && r.data) setConvite(r.data)
+    const r = await api<{ codigo: string; expira: string; erro?: string }>('/api/admin/convites', { method: 'POST', body: JSON.stringify({ role }) })
+    if (r.ok && r.data) setConvite({ ...r.data, role })
     else setErro(r.data?.erro ?? 'Não foi possível gerar o convite.')
   }
   async function verEventos() {
@@ -174,10 +174,10 @@ export default function Dashboard() {
       {visao === 'relatorios' && <div id="relatorios"><AdminRelatorios /></div>}
 
       {visao === 'equipe' && <div id="equipe" className="page-section-stack">
-        <Cartao titulo="Convite para novo barbeiro">
-          <p className="muted">Crie um código individual para cadastro de um novo profissional.</p>
-          <button className={botao} onClick={gerarConvite}>Gerar código de convite</button>
-          {convite && <div className="invite-result"><code>{convite.codigo}</code><span>Uso único · expira em {dataBR(convite.expira.slice(0, 10))} às {convite.expira.slice(11, 16)} UTC</span></div>}
+        <Cartao titulo="Convites para a equipe">
+          <p className="muted">Cada código é individual, vale uma vez e expira conforme o prazo da barbearia.</p>
+          <div className="inline-row"><button className={botao} onClick={() => gerarConvite('barbeiro')}>Convidar barbeiro</button><button className={botaoSec} onClick={() => gerarConvite('recepcionista')}>Convidar atendente</button></div>
+          {convite && <div className="invite-result"><code>{convite.codigo}</code><span>Cadastro de {convite.role === 'recepcionista' ? 'atendente' : 'barbeiro'} · uso único · expira em {dataBR(convite.expira.slice(0, 10))} às {convite.expira.slice(11, 16)} UTC</span></div>}
         </Cartao>
         <Cartao titulo="Eventos de segurança">
           <div className="inline-row"><button className={botaoSec} onClick={verEventos}>Atualizar eventos</button><span className="muted">Acessos, tentativas negadas e alterações recentes.</span></div>

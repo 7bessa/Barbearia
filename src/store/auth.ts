@@ -3,7 +3,7 @@ import { api } from '@/lib/api-client'
 
 export type Usuario = { id: number; nome: string; email: string; role: 'cliente' | 'barbeiro' | 'recepcionista' | 'admin'; barberId?: number }
 type Resp = { usuario?: Usuario; erro?: string }
-type Cadastro = { nome: string; telefone: string; email: string; senha: string; aceitoTermos: boolean; role?: 'cliente' | 'barbeiro'; codigoConvite?: string }
+type Cadastro = { nome: string; telefone: string; email: string; senha: string; aceitoTermos: boolean; role?: 'cliente' | 'barbeiro' | 'recepcionista'; codigoConvite?: string }
 
 // Só estado em memória (sem persist/localStorage). A fonte da verdade é o cookie httpOnly no servidor.
 type Estado = {

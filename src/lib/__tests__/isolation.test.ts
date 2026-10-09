@@ -25,6 +25,7 @@ import { GET as relatorioFinanceiro } from '@/app/api/admin/financeiro/relatorio
 import { PATCH as alterarAgendamento } from '@/app/api/agendamentos/[id]/route'
 import { GET as verComissao } from '@/app/api/barbeiro/comissao/route'
 import { GET as health } from '@/app/api/health/route'
+import { POST as cadastro } from '@/app/api/auth/cadastro/route'
 
 const origem = 'http://localhost:3000'
 const csrf = 'isolation-test-csrf-token'
@@ -38,6 +39,7 @@ const agendamentos: { a: number; b: number } = { a: 0, b: 0 }
 const sessoes: { a: string; b: string } = { a: '', b: '' }
 const sessoesBarbeiro: { a: string; b: string } = { a: '', b: '' }
 const ipsTeste = [1, 2, 3].map((n) => `198.51.100.${1 + ((Number.parseInt(sufixo.slice(n * 2, n * 2 + 2), 16) || n) % 254)}`)
+const ipCadastroRecepcao = `198.51.100.${ipsTeste.length + 40}`
 
 function requisicao(caminho: string, op: { token?: string; method?: string; body?: unknown; ip?: string } = {}) {
   const cookie = [
@@ -142,6 +144,7 @@ after(async () => {
     const chavesTeste = [
       ...ids.map((id) => `publico-agendar:${id}:desconhecido`),
       ...ipsTeste.map((ip) => `onboarding:${ip}`),
+      `cadastro:${ipCadastroRecepcao}`,
       ...usuarios.map((id) => `convite:${id}`),
     ]
     await prisma.rateLimit.deleteMany({ where: { chave: { in: chavesTeste } } })
@@ -274,19 +277,70 @@ test('horarios e bloqueios permanecem restritos a barbearia da sessao', async ()
   assert.deepEqual((await listaComFiltroEstrangeiro.json()).bloqueios, [])
 })
 
-test('convites de barbeiro pertencem somente a barbearia que os criou', async () => {
+test('convites de equipe respeitam o papel e isolam cada barbearia', async () => {
   const conviteA = await criarConvite(requisicao('/api/admin/convites', { method: 'POST', token: sessoes.a }), {})
   assert.equal(conviteA.status, 201)
   const corpoConviteA = await conviteA.json()
   assert.equal(typeof corpoConviteA.codigo, 'string')
-  assert.equal(corpoConviteA.codigo.length, 12)
+  assert.match(corpoConviteA.codigo, /^B-[\w-]{12}$/)
+
+  const conviteRecepcao = await criarConvite(requisicao('/api/admin/convites', {
+    method: 'POST', token: sessoes.a, body: { role: 'recepcionista' },
+  }), {})
+  assert.equal(conviteRecepcao.status, 201)
+  const corpoConviteRecepcao = await conviteRecepcao.json()
+  assert.match(corpoConviteRecepcao.codigo, /^R-/)
 
   const pendentesA = await verConvites(requisicao('/api/admin/convites', { token: sessoes.a }), {})
   const pendentesB = await verConvites(requisicao('/api/admin/convites', { token: sessoes.b }), {})
   assert.equal(pendentesA.status, 200)
   assert.equal(pendentesB.status, 200)
-  assert.equal((await pendentesA.json()).pendentes, 1)
+  assert.equal((await pendentesA.json()).pendentes, 2)
   assert.equal((await pendentesB.json()).pendentes, 0)
+
+  const ip = ipCadastroRecepcao
+  const agora = Date.now()
+  const contaBarbeiro = await cadastro(requisicao('/api/auth/cadastro', {
+    method: 'POST', ip,
+    body: {
+      nome: 'Barbeiro de Teste', telefone: `629${String(agora).slice(-8)}`,
+      email: `barbeiro-novo-${sufixo}@example.test`, senha: 'Barbearia123', aceitoTermos: true,
+      role: 'barbeiro', codigoConvite: corpoConviteA.codigo,
+    },
+  }), {})
+  assert.equal(contaBarbeiro.status, 201)
+  const corpoBarbeiro = await contaBarbeiro.json()
+  assert.equal(corpoBarbeiro.usuario.role, 'barbeiro')
+  const barbeiroPersistido = await prisma.usuario.findUniqueOrThrow({ where: { id: corpoBarbeiro.usuario.id } })
+  usuarios.push(barbeiroPersistido.id)
+  assert.equal(barbeiroPersistido.barbeariaId, lojas[0].id)
+  assert.ok(barbeiroPersistido.barberId)
+
+  const papelIncorreto = await cadastro(requisicao('/api/auth/cadastro', {
+    method: 'POST', ip,
+    body: {
+      nome: 'Pessoa de Teste', telefone: `629${String(agora + 1).slice(-8)}`,
+      email: `papel-invalido-${sufixo}@example.test`, senha: 'Barbearia123', aceitoTermos: true,
+      role: 'barbeiro', codigoConvite: corpoConviteRecepcao.codigo,
+    },
+  }), {})
+  assert.equal(papelIncorreto.status, 403)
+
+  const contaRecepcao = await cadastro(requisicao('/api/auth/cadastro', {
+    method: 'POST', ip,
+    body: {
+      nome: 'Atendente de Teste', telefone: `629${String(agora + 2).slice(-8)}`,
+      email: `atendente-${sufixo}@example.test`, senha: 'Barbearia123', aceitoTermos: true,
+      role: 'recepcionista', codigoConvite: corpoConviteRecepcao.codigo,
+    },
+  }), {})
+  assert.equal(contaRecepcao.status, 201)
+  const corpoConta = await contaRecepcao.json()
+  assert.equal(corpoConta.usuario.role, 'recepcionista')
+  const usuarioPersistido = await prisma.usuario.findUniqueOrThrow({ where: { id: corpoConta.usuario.id } })
+  usuarios.push(usuarioPersistido.id)
+  assert.equal(usuarioPersistido.barbeariaId, lojas[0].id)
+  assert.equal(usuarioPersistido.barberId, null)
 })
 
 test('relatorios e alteracoes de agendamento nao atravessam barbearias', async () => {

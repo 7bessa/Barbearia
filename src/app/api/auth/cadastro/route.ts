@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cadastroSchema } from '@/lib/validation'
-import { BARBEARIA_PADRAO_ID, barbeariaDoConvite, cadastrar, conflito, ConviteInvalido, conviteValido, usuarioPorEmail, usuarioPorTelefone } from '@/lib/db'
+import { BARBEARIA_PADRAO_ID, barbeariaDoConvite, cadastrar, conflito, ConviteInvalido, conviteValido, papelDoConvite, usuarioPorEmail, usuarioPorTelefone } from '@/lib/db'
 import { hashSenha } from '@/lib/hash'
 import { consumir } from '@/lib/rateLimit'
 import { audit, getIp } from '@/lib/audit'
@@ -15,17 +15,17 @@ export const POST = seguro(async (req: NextRequest) => {
   if (!p.success) return erro(400, 'Dados inválidos. Revise os campos.')
   const d = p.data
 
-  // Só existem dois papéis via cadastro. "admin" (ou qualquer outro valor) vira "cliente".
-  let role: 'cliente' | 'barbeiro' = 'cliente'
+  // Perfis de equipe só entram com convite válido, individual e de uso único.
+  let role: 'cliente' | 'barbeiro' | 'recepcionista' = 'cliente'
   let barbeariaId = BARBEARIA_PADRAO_ID
-  if (d.role === 'barbeiro') {
-    // Convite individual, de uso único e com validade, gerado pelo dono (POST /api/admin/convites).
+  if (d.role === 'barbeiro' || d.role === 'recepcionista') {
     if (!d.codigoConvite || !(await conviteValido(d.codigoConvite))) {
-      await audit(req, { acao: 'cadastro_barbeiro', resultado: 'negado', detalhe: { motivo: 'convite' } })
-      return erro(403, 'Código de convite inválido. Solicite ao dono da barbearia.')
+      await audit(req, { acao: 'cadastro_equipe', resultado: 'negado', detalhe: { motivo: 'convite' } })
+      return erro(403, 'Código de convite inválido. Solicite um novo código ao responsável.')
     }
+    if (papelDoConvite(d.codigoConvite) !== d.role) return erro(403, 'Esse código foi criado para outro tipo de acesso.')
     barbeariaId = await barbeariaDoConvite(d.codigoConvite) ?? BARBEARIA_PADRAO_ID
-    role = 'barbeiro'
+    role = d.role
   } else if (d.role && d.role !== 'cliente') {
     await audit(req, { acao: 'cadastro_role_ignorado', resultado: 'negado', detalhe: { pedido: d.role.slice(0, 20) } })
   }
