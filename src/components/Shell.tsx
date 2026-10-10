@@ -25,6 +25,7 @@ function NavIcon({ label }: { label: string }) {
     Atendimentos: <><path d="M4 5h16v13H7l-3 3V5Z" /><path d="M8 10h8M8 14h5" /></>,
     'Minha comissão': <><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" /><path d="M19 4v5M16.5 6.5H21.5" /></>,
     Bloqueios: <><circle cx="12" cy="12" r="9" /><path d="m6 6 12 12" /></>,
+    'Plano e cobrança': <><path d="M3 7h18v13H3z" /><path d="M3 11h18M7 16h3M7 4v3M17 4v3" /></>,
   }
 
   return <svg aria-hidden="true" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">{paths[label] ?? paths.Agenda}</svg>
@@ -61,6 +62,7 @@ const NAV: Record<string, NavItem[]> = {
     { href: '/admin/dashboard#estoque', label: 'Estoque', end: true, hash: 'estoque' },
     { href: '/admin/dashboard#agendamentos', label: 'Agendamentos', end: true, hash: 'agendamentos' },
     { href: '/admin/dashboard#configuracoes', label: 'Configurações', end: true, hash: 'configuracoes' },
+    { href: '/admin/assinatura', label: 'Plano e cobrança', end: true },
     { href: '/admin/dashboard#equipe', label: 'Convites e segurança', end: true, hash: 'equipe' },
   ],
 }

@@ -17,13 +17,17 @@ export const GET = seguro(async (req: NextRequest) => {
     carregarNomes(r.user.barbeariaId),
     prisma.despesa.findMany({ where: { barbeariaId: r.user.barbeariaId, data: { startsWith: mes.data + '-' } } }),
     prisma.usuario.findMany({ where: { barbeariaId: r.user.barbeariaId, role: 'cliente', semConta: false }, select: { id: true, nome: true, telefone: true } }),
-    prisma.agendamento.findMany({ where: { barbeariaId: r.user.barbeariaId, clienteId: { not: null }, status: 'concluido' }, select: { clienteId: true, data: true }, orderBy: { data: 'desc' } }),
+    prisma.agendamento.groupBy({
+      by: ['clienteId'],
+      where: { barbeariaId: r.user.barbeariaId, clienteId: { not: null }, status: 'concluido' },
+      _max: { data: true },
+    }),
     prisma.produto.findMany({ where: { barbeariaId: r.user.barbeariaId, ativo: true }, select: { id: true, nome: true, quantidade: true, estoqueMinimo: true }, orderBy: { quantidade: 'asc' } }),
   ])
   const financeiro = calcular(agendamentos.map(toAg), nomes)
   const totalDespesas = despesas.reduce((total, item) => total + item.valorCent / 100, 0)
   const ultimaVisita = new Map<number, string>()
-  for (const item of ultimos) if (item.clienteId && !ultimaVisita.has(item.clienteId)) ultimaVisita.set(item.clienteId, item.data)
+  for (const item of ultimos) if (item.clienteId && item._max.data) ultimaVisita.set(item.clienteId, item._max.data)
   const limiteInatividade = diasAntes(45)
   const clientesSumidos = clientes
     .map((cliente) => ({ ...cliente, ultimaVisita: ultimaVisita.get(cliente.id) ?? null }))

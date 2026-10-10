@@ -20,7 +20,7 @@ export default function Privacidade() {
         <p>O barbeiro vê nome, telefone e histórico apenas dos clientes que atende. O dono e a administração têm acesso a todos os agendamentos e ao financeiro. Outros clientes nunca veem seus dados. As observações de atendimento são internas e não aparecem para você.</p>
       </Secao>
       <Secao titulo="Segurança">
-        <p>Senhas são guardadas apenas criptografadas (hash), o acesso usa cookies protegidos e ações críticas ficam registradas em log de auditoria.</p>
+        <p>Senhas não são armazenadas em texto simples: usamos hash bcrypt. O acesso usa cookies com proteções de segurança, e ações críticas ficam registradas em log de auditoria.</p>
       </Secao>
       <Secao titulo="Por quanto tempo guardamos">
         <p>Enquanto sua conta existir. Ao excluir a conta, seus dados pessoais e observações são apagados. Registros financeiros de atendimentos já realizados são mantidos de forma anonimizada (sem nome e telefone) pelo prazo exigido pela legislação fiscal e contábil.</p>

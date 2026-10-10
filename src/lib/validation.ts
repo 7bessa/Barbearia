@@ -26,7 +26,7 @@ const telefone = z
 const senhaForte = z.string().min(8).max(72).regex(/[A-Za-z]/).regex(/\d/)
 const imagemUrl = z.string().max(2048).transform((s) => s.trim()).refine((s) => {
   if (!s) return true
-  if (s === '/barbershop-ambient.png') return true
+  if (s === '/barbershop-ambient.png' || s === '/barbershop-ambient.webp') return true
   try { return new URL(s).protocol === 'https:' } catch { return false }
 }, 'Use um link HTTPS válido para a imagem.')
 
@@ -67,7 +67,7 @@ export const barbeariaConfigSchema = z.object({
   slug: z.string().max(100).transform((s) => s.trim().toLowerCase()).refine(slugValido),
   corPrimaria: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   corFundo: z.string().regex(/^#[0-9a-fA-F]{6}$/),
-  imagemAmbiente: imagemUrl.default('/barbershop-ambient.png'),
+  imagemAmbiente: imagemUrl.default('/barbershop-ambient.webp'),
   capacidadeCadeiras: z.number().int().min(1).max(30).default(1),
 })
 

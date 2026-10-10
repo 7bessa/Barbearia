@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { agendamentoSchema } from '@/lib/validation'
+import { agendamentoSchema, dataSchema } from '@/lib/validation'
 import { agendar, dto, equipeAcessaCliente, toAg, usuarioPorId } from '@/lib/db'
 import { prisma } from '@/lib/prisma'
 import { consumir } from '@/lib/rateLimit'
@@ -11,7 +11,12 @@ export const GET = seguro(async (req: NextRequest) => {
   const r = await exigir(req, ['cliente', 'barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const { user } = r
-  const where = user.role === 'cliente' ? { barbeariaId: user.barbeariaId, clienteId: user.id } : user.role === 'barbeiro' ? { barbeariaId: user.barbeariaId, barberId: user.barberId ?? -1 } : { barbeariaId: user.barbeariaId }
+  const data = req.nextUrl.searchParams.get('data')
+  if (data && !dataSchema.safeParse(data).success) return erro(400, 'Data inválida')
+  const where = {
+    ...(user.role === 'cliente' ? { barbeariaId: user.barbeariaId, clienteId: user.id } : user.role === 'barbeiro' ? { barbeariaId: user.barbeariaId, barberId: user.barberId ?? -1 } : { barbeariaId: user.barbeariaId }),
+    ...(data ? { data } : {}),
+  }
   const rows = await prisma.agendamento.findMany({ where, orderBy: [{ data: 'desc' }, { hora: 'desc' }], take: 1000 })
   return resp({ agendamentos: rows.map((a) => dto(toAg(a), user.role !== 'cliente')) })
 })

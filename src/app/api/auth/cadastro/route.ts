@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cadastroSchema } from '@/lib/validation'
-import { BARBEARIA_PADRAO_ID, barbeariaDoConvite, cadastrar, conflito, ConviteInvalido, conviteValido, papelDoConvite, usuarioPorEmail, usuarioPorTelefone } from '@/lib/db'
+import { BARBEARIA_PADRAO_ID, barbeariaDoConvite, cadastrar, conflito, ConviteInvalido, LimitePlanoAtingido, conviteValido, papelDoConvite, usuarioPorEmail, usuarioPorTelefone } from '@/lib/db'
 import { hashSenha } from '@/lib/hash'
 import { consumir } from '@/lib/rateLimit'
 import { audit, getIp } from '@/lib/audit'
-import { criarSessao, erro, publico, seguro, verificarCsrf } from '@/lib/auth'
+import { erro, seguro, verificarCsrf } from '@/lib/auth'
+import { emailPodeEnviar, emitirTokenConta, enviarLinkConta } from '@/lib/account-tokens'
 
 export const POST = seguro(async (req: NextRequest) => {
   if (!verificarCsrf(req)) return erro(403, 'Requisição inválida')
+  if (!emailPodeEnviar()) return erro(503, 'O cadastro está temporariamente indisponível. Tente novamente mais tarde.')
   // 5 cadastros/hora por IP: também freia tentativa de adivinhar o código de convite.
   if (!(await consumir(`cadastro:${getIp(req)}`, 5, 60 * 60 * 1000))) return erro(429, 'Muitas tentativas. Tente novamente mais tarde.')
 
@@ -38,14 +40,20 @@ export const POST = seguro(async (req: NextRequest) => {
   let u
   try {
     // Usuário e consumo do convite na MESMA transação: se qualquer parte falhar, nada é gravado.
-    u = await cadastrar({ nome: d.nome, email: d.email, telefone: d.telefone, role, senhaHash, barbeariaId }, d.codigoConvite)
+    u = await cadastrar({ nome: d.nome, email: d.email, telefone: d.telefone, role, senhaHash, barbeariaId, emailVerificado: false }, d.codigoConvite)
   } catch (e) {
     if (e instanceof ConviteInvalido) return erro(403, 'Código de convite inválido. Solicite ao dono da barbearia.')
+    if (e instanceof LimitePlanoAtingido) return erro(403, `O plano atual permite até ${e.limite} profissional(is) ativo(s). Peça ao responsável para alterar o plano ou liberar uma vaga.`)
     if (conflito(e)) return erro(409, GENERICO) // e-mail/telefone duplicados numa corrida
     throw e
   }
-  const res = NextResponse.json({ usuario: publico(u) }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
-  await criarSessao(res, u)
-  await audit(req, { acao: 'cadastro', resultado: 'ok', userId: u.id, detalhe: { role } })
-  return res
+  try {
+    const token = await emitirTokenConta(u.id, 'verificacao')
+    const linkLocal = await enviarLinkConta(d.email, d.nome, 'verificacao', token)
+    await audit(req, { acao: 'cadastro', resultado: 'ok', userId: u.id, detalhe: { role, confirmacaoEnviada: true } })
+    return NextResponse.json({ confirmacaoNecessaria: true, email: d.email, linkLocal }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
+  } catch {
+    await audit(req, { acao: 'cadastro', resultado: 'falha', userId: u.id, detalhe: { role, confirmacaoEnviada: false } })
+    return erro(503, 'Sua conta foi criada, mas o e-mail não saiu. Use “Reenviar confirmação” na tela de acesso.')
+  }
 })

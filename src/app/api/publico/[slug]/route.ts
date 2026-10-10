@@ -6,6 +6,7 @@ import { slugValido } from '@/lib/slug-barbearia'
 import { consumir } from '@/lib/rateLimit'
 import { audit, getIp } from '@/lib/audit'
 import { erro, resp, seguro, verificarCsrf } from '@/lib/auth'
+import { acessoAssinaturaAtivo } from '@/lib/assinatura'
 
 type Contexto = { params: Promise<{ slug: string }> }
 const COR_PADRAO = '#D4AF37'
@@ -21,7 +22,7 @@ async function buscarBarbearia(slug: string) {
 export const GET = seguro(async (_req: NextRequest, ctx: Contexto) => {
   const { slug } = await ctx.params
   const barbearia = await buscarBarbearia(slug)
-  if (!barbearia?.ativa) return erro(404, 'Barbearia não encontrada')
+  if (!barbearia?.ativa || !acessoAssinaturaAtivo(barbearia.assinaturaStatus, barbearia.testeAte)) return erro(404, 'Barbearia não encontrada')
   const [barbeiros, servicos] = await Promise.all([
     prisma.barbeiro.findMany({ where: { barbeariaId: barbearia.id, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true, foto: true } }),
     prisma.servico.findMany({ where: { barbeariaId: barbearia.id, ativo: true }, orderBy: { id: 'asc' }, select: { id: true, nome: true, precoCent: true, dur: true } }),
@@ -37,7 +38,7 @@ export const POST = seguro(async (req: NextRequest, ctx: Contexto) => {
   const { slug } = await ctx.params
   if (!verificarCsrf(req)) return erro(403, 'Requisição inválida')
   const barbearia = await buscarBarbearia(slug)
-  if (!barbearia?.ativa) return erro(404, 'Barbearia não encontrada')
+  if (!barbearia?.ativa || !acessoAssinaturaAtivo(barbearia.assinaturaStatus, barbearia.testeAte)) return erro(404, 'Barbearia não encontrada')
   if (!(await consumir(`publico-agendar:${barbearia.id}:${getIp(req)}`, 8, 60 * 60 * 1000))) {
     return erro(429, 'Muitas tentativas. Tente novamente mais tarde.')
   }

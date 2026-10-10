@@ -19,11 +19,11 @@ export default function Cadastro() {
     e.preventDefault()
     setErro('')
     if (!aceito) return setErro('É preciso aceitar os termos e a política de privacidade.')
-    const msg = await cadastrar({ ...f, aceitoTermos: true, role: perfil, codigoConvite: perfil === 'cliente' ? undefined : f.codigoConvite })
-    if (msg) return setErro(msg)
-    const u = useAuth.getState().usuario!
-    router.replace(u.role === 'barbeiro' ? '/barbeiro/agenda' : u.role === 'recepcionista' ? '/recepcao/dashboard' : '/cliente/agendar')
-    router.refresh()
+    const resultado = await cadastrar({ ...f, aceitoTermos: true, role: perfil, codigoConvite: perfil === 'cliente' ? undefined : f.codigoConvite })
+    if (resultado.erro) return setErro(resultado.erro)
+    const query = new URLSearchParams({ email: resultado.email ?? '' })
+    if (resultado.linkLocal) query.set('link', resultado.linkLocal)
+    router.replace(`/verificar-email?${query}`)
   }
 
   return (

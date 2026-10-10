@@ -1,3 +1,9 @@
+import '@fontsource/inter/latin-400.css'
+import '@fontsource/inter/latin-500.css'
+import '@fontsource/inter/latin-600.css'
+import '@fontsource/inter/latin-700.css'
+import '@fontsource/playfair-display/latin-600.css'
+import '@fontsource/playfair-display/latin-700.css'
 import './globals.css'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
@@ -10,9 +16,15 @@ export const dynamic = 'force-dynamic' // necessário para o CSP com nonce em pr
 export async function generateMetadata(): Promise<Metadata> {
   const loja = await prisma.barbearia.findUnique({
     where: { id: BARBEARIA_PADRAO_ID },
-    select: { nome: true },
+    select: { nome: true, slogan: true },
   }).catch(() => null)
-  return { title: loja?.nome ?? BARBEARIA.nome }
+  const nome = loja?.nome ?? BARBEARIA.nome
+  const descricao = loja?.slogan || BARBEARIA.slogan
+  return {
+    title: nome,
+    description: `${descricao}. Agende seu horário online com a equipe.`,
+    icons: { icon: '/logo.svg', apple: '/icon-192.png' },
+  }
 }
 
 export default function RootLayout({ children }: { children: ReactNode }) {

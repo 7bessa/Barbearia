@@ -3,7 +3,7 @@ const seguranca = [
   { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Referrer-Policy', value: 'no-referrer' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
 ]
@@ -22,6 +22,8 @@ module.exports = {
     return [
       { source: '/(.*)', headers: seguranca },
       { source: '/api/(.*)', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+      { source: '/verificar-email', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
+      { source: '/redefinir-senha', headers: [{ key: 'Cache-Control', value: 'no-store' }] },
     ]
   },
 }

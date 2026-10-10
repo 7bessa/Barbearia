@@ -51,7 +51,7 @@ export default function CriarBarbearia() {
     if (!aceito) return setErro('É preciso aceitar os termos e a política de privacidade.')
 
     setSalvando(true)
-    const r = await api<{ erro?: string }>('/api/onboarding', {
+    const r = await api<{ erro?: string; email?: string; linkLocal?: string }>('/api/onboarding', {
       method: 'POST',
       body: JSON.stringify({
         nomeBarbearia: dados.nomeBarbearia,
@@ -69,8 +69,9 @@ export default function CriarBarbearia() {
     setSalvando(false)
     if (!r.ok) return setErro(r.data?.erro ?? 'Não foi possível abrir a barbearia online.')
 
-    router.replace('/admin/dashboard')
-    router.refresh()
+    const query = new URLSearchParams({ email: r.data?.email ?? dados.email })
+    if (r.data?.linkLocal) query.set('link', r.data.linkLocal)
+    router.replace(`/verificar-email?${query}`)
   }
 
   const estilo = { '--brand-preview-bg': dados.corFundo, '--brand-preview-accent': dados.corPrimaria } as CSSProperties

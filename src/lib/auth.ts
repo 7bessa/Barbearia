@@ -8,6 +8,7 @@ import { toUsuario, usuarioPorId, type Usuario } from './db'
 import { prisma } from './prisma'
 import { audit } from './audit'
 import { contaBarbeiroAtiva } from './regras-agendamento'
+import { acessoAssinaturaAtivo } from './assinatura'
 
 const prod = process.env.NODE_ENV === 'production'
 
@@ -93,7 +94,7 @@ export async function lerSessao(req?: NextRequest) {
   if (!token) return null
   const p = await verificarAcesso(token)
   if (!p) return null
-  const s = await prisma.sessao.findUnique({ where: { sid: p.sid }, include: { usuario: { include: { barbearia: { select: { ativa: true } }, barbeiro: { select: { ativo: true, barbeariaId: true } } } } } })
+  const s = await prisma.sessao.findUnique({ where: { sid: p.sid }, include: { usuario: { include: { barbearia: { select: { ativa: true, assinaturaStatus: true, testeAte: true } }, barbeiro: { select: { ativo: true, barbeariaId: true } } } } } })
   if (!s || s.exp.getTime() < Date.now() || String(s.userId) !== p.sub) return null // logout invalida na hora, mesmo com JWT ainda válido
   const barbeiroNoTenant = s.usuario.role !== 'barbeiro' || s.usuario.barbeiro?.barbeariaId === s.usuario.barbeariaId
   if (!s.usuario.barbearia.ativa || !barbeiroNoTenant || !contaBarbeiroAtiva(s.usuario.role, s.usuario.barbeiro?.ativo)) {
@@ -101,7 +102,11 @@ export async function lerSessao(req?: NextRequest) {
     await audit(req ?? null, { acao: 'sessao_profissional_inativo', resultado: 'negado', userId: s.userId })
     return null
   }
-  return { user: toUsuario(s.usuario), sid: p.sid }
+  return {
+    user: toUsuario(s.usuario),
+    sid: p.sid,
+    assinatura: { status: s.usuario.barbearia.assinaturaStatus, testeAte: s.usuario.barbearia.testeAte },
+  }
 }
 
 // 3 tentativas de acesso indevido => sessão destruída.
@@ -134,6 +139,11 @@ export async function exigir(req: NextRequest, roles?: Role[]): Promise<Guarda> 
   }
   const s = await lerSessao(req)
   if (!s) return { ok: false, res: erro(401, 'Não autenticado') }
+  const rotaDeAssinatura = req.nextUrl.pathname.startsWith('/api/admin/assinatura')
+  const rotaDeSessao = req.nextUrl.pathname === '/api/auth/me'
+  if (!rotaDeAssinatura && !rotaDeSessao && !acessoAssinaturaAtivo(s.assinatura.status, s.assinatura.testeAte)) {
+    return { ok: false, res: NextResponse.json({ erro: 'O período de teste ou a assinatura terminou.', assinaturaExpirada: true }, { status: 402, headers: { 'Cache-Control': 'no-store', 'X-Subscription-Required': '1' } }) }
+  }
   if (roles && !roles.includes(s.user.role)) {
     await tentativaIndevida(s.sid, req, req.nextUrl.pathname)
     return { ok: false, res: erro(403, 'Acesso negado') }

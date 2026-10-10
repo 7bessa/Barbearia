@@ -11,7 +11,18 @@ export default function AdminEstoque() {
   const [edicao, setEdicao] = useState<number | null>(null)
   const [form, setForm] = useState(vazio)
   const [msg, setMsg] = useState('')
-  const carregar = useCallback(async () => { const r = await api<{ produtos: Produto[] }>('/api/admin/produtos'); if (r.ok && r.data) setItens(r.data.produtos) }, [])
+  const [carregando, setCarregando] = useState(true)
+  const [erroCarga, setErroCarga] = useState('')
+  const carregar = useCallback(async () => {
+    setCarregando(true); setErroCarga('')
+    try {
+      const r = await api<{ produtos: Produto[]; erro?: string }>('/api/admin/produtos')
+      if (r.ok && r.data) setItens(r.data.produtos)
+      else setErroCarga(r.data?.erro ?? 'Não foi possível carregar o estoque.')
+    } finally {
+      setCarregando(false)
+    }
+  }, [])
   useEffect(() => { carregar() }, [carregar])
   const mudar = (chave: keyof typeof form, valor: string) => setForm((atual) => ({ ...atual, [chave]: valor }))
   const limpar = () => { setEdicao(null); setForm(vazio) }
@@ -37,9 +48,9 @@ export default function AdminEstoque() {
       <div className="inline-row"><button className={botao}>{edicao ? 'Salvar produto' : 'Adicionar produto'}</button>{edicao !== null && <button type="button" className={botaoSec} onClick={limpar}>Cancelar</button>}</div>
     </form>
     {msg && <p className={msg.startsWith('Não') ? 'error' : 'success'} role="status">{msg}</p>}
-    <div className="table-wrap"><table className="data-table"><thead><tr><th>Produto</th><th>Venda</th><th>Estoque</th><th>Status</th><th></th></tr></thead><tbody>
+    {erroCarga ? <div><p className="error" role="alert">{erroCarga}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></div> : carregando ? <p className="muted">Carregando estoque...</p> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Produto</th><th>Venda</th><th>Estoque</th><th>Status</th><th></th></tr></thead><tbody>
       {itens.map((item) => <tr key={item.id}><td>{item.nome}</td><td>{brl(item.preco)}</td><td>{item.quantidade} {item.quantidade <= item.estoqueMinimo ? <span className="no-show-risk">baixo</span> : null}</td><td><span className="status-tag" data-status={item.ativo ? 'concluido' : 'cancelado'}>{item.ativo ? 'Ativo' : 'Inativo'}</span></td><td><div className="inline-row"><button className={botaoSec} onClick={() => { setEdicao(item.id); setForm({ nome: item.nome, preco: String(item.preco), quantidade: String(item.quantidade), estoqueMinimo: String(item.estoqueMinimo) }) }}>Editar</button>{item.ativo && <button className="button button-danger" onClick={() => remover(item)}>Desativar</button>}</div></td></tr>)}
       {itens.length === 0 && <tr><td colSpan={5} className="muted">Nenhum produto cadastrado.</td></tr>}
-    </tbody></table></div>
+    </tbody></table></div>}
   </Cartao>
 }

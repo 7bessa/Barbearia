@@ -30,6 +30,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
   const [barberId, setBarberId] = useState('')
   const [data, setData] = useState(somaDias(hojeBR(), 1))
   const [horarios, setHorarios] = useState<string[]>([])
+  const [diaFechado, setDiaFechado] = useState(false)
   const [erroHorarios, setErroHorarios] = useState(false)
   const [hora, setHora] = useState('')
   const [nome, setNome] = useState('')
@@ -41,7 +42,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
   const [mensagem, setMensagem] = useState<{ ok: boolean; texto: string } | null>(null)
   const [confirmacao, setConfirmacao] = useState<Confirmacao | null>(null)
   const hoje = hojeBR()
-  const datas = useMemo(() => Array.from({ length: 14 }, (_, i) => {
+  const datas = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const valor = somaDias(hoje, i + 1)
     const d = new Date(`${valor}T12:00:00Z`)
     return { valor, dia: d.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' }).replace('.', ''), numero: d.getUTCDate(), mes: d.toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' }).replace('.', '') }
@@ -61,11 +62,13 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
     if (!servicoId || !barberId || !data) return
     setCarregandoHorarios(true)
     setErroHorarios(false)
+    setDiaFechado(false)
     const qs = new URLSearchParams({ barberId, servicoId, data })
     try {
-      const r = await api<{ horarios: string[] }>(`/api/publico/${encodeURIComponent(slug)}/disponibilidade?${qs}`)
+      const r = await api<{ horarios: string[]; fechado: boolean }>(`/api/publico/${encodeURIComponent(slug)}/disponibilidade?${qs}`)
       if (!r.ok || !r.data) throw new Error('Falha ao consultar disponibilidade')
       setHorarios(r.data.horarios)
+      setDiaFechado(r.data.fechado)
     } catch {
       setHorarios([])
       setErroHorarios(true)
@@ -161,7 +164,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
 
             {passo === 2 && <div className="choice-grid">
               {catalogo.barbeiros.map((item) => <button key={item.id} type="button" className="choice-card" aria-pressed={barberId === String(item.id)} onClick={() => { setBarberId(String(item.id)); setPasso(3) }}>
-                <span className="barber-choice">{item.foto ? <Image className="barber-choice-photo" src={item.foto} alt={`Foto de ${item.nome}`} width={48} height={48} unoptimized /> : <span className="barber-photo-fallback" aria-hidden="true">{item.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
+                <span className="barber-choice">{item.foto ? <Image className="barber-choice-photo" src={item.foto} alt={`Foto de ${item.nome}`} width={48} height={48} unoptimized={!item.foto.startsWith('/')} /> : <span className="barber-photo-fallback" aria-hidden="true">{item.nome.slice(0, 1)}</span>}<span className="barber-choice-copy"><span className="choice-title">{item.nome}</span><span className="choice-detail">Profissional da equipe</span></span></span>
               </button>)}
               {!catalogo.barbeiros.length && <p className="empty-state">Esta barbearia ainda não tem profissionais disponíveis.</p>}
             </div>}
@@ -171,7 +174,7 @@ export default function AgendarPublico({ params }: { params: Promise<{ slug: str
                 {datas.map((d) => <button key={d.valor} className="date-choice" type="button" aria-pressed={data === d.valor} onClick={() => setData(d.valor)}><small>{d.dia}</small><strong>{d.numero}</strong><small>{d.mes}</small></button>)}
               </div></div>
               <div><h2>Horários livres</h2>
-                {carregandoHorarios ? <p className="muted">Buscando horários...</p> : erroHorarios ? <div><p className="error" role="status">Não foi possível consultar os horários. Tente novamente.</p><button type="button" className={botaoSec} onClick={() => void buscarHorarios()}>Tentar novamente</button></div> : horarios.length ? <div className="time-grid" aria-label="Horários disponíveis">{horarios.map((h) => <button key={h} type="button" className="time-choice" aria-pressed={hora === h} onClick={() => setHora(h)}>{h}</button>)}</div> : <p className="empty-state">Sem horários livres nesta data. Escolha outro dia.</p>}
+                {carregandoHorarios ? <p className="muted">Buscando horários...</p> : erroHorarios ? <div><p className="error" role="status">Não foi possível consultar os horários. Tente novamente.</p><button type="button" className={botaoSec} onClick={() => void buscarHorarios()}>Tentar novamente</button></div> : horarios.length ? <div className="time-grid" aria-label="Horários disponíveis">{horarios.map((h) => <button key={h} type="button" className="time-choice" aria-pressed={hora === h} onClick={() => setHora(h)}>{h}</button>)}</div> : <p className="empty-state">{diaFechado ? 'A barbearia não abre neste dia. Escolha outra data.' : 'Sem horários livres nesta data. Escolha outro dia.'}</p>}
               </div>
             </div>}
 

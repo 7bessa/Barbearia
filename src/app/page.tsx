@@ -14,7 +14,9 @@ export default async function Home() {
   }).catch(() => null)
   const nome = loja?.nome ?? B.nome
   const slogan = loja?.slogan ?? B.slogan
-  const imagemAmbiente = loja?.imagemAmbiente || '/barbershop-ambient.png'
+  const imagemAmbiente = !loja?.imagemAmbiente || loja.imagemAmbiente === '/barbershop-ambient.png'
+    ? '/barbershop-ambient.webp'
+    : loja.imagemAmbiente
   const linkAgendamento = loja?.ativa ? `/agendar/${encodeURIComponent(loja.slug)}` : '/login'
   const estilo = { '--home-accent': loja?.corPrimaria ?? B.cores.primaria } as CSSProperties
 
@@ -25,7 +27,7 @@ export default async function Home() {
         <div className="inline-row"><Link href="/login" className="link-muted">Entrar</Link><Link href="/cadastro" className="home-register">Cadastrar-se</Link></div>
       </header>
       <section className="home-hero">
-        <Image className="home-hero-image" src={imagemAmbiente} alt="" fill priority sizes="100vw" unoptimized />
+        <Image className="home-hero-image" src={imagemAmbiente} alt="" fill priority sizes="100vw" unoptimized={!imagemAmbiente.startsWith('/')} />
         <div className="home-hero-shade" aria-hidden="true" />
         <div className="grid justify-items-center text-center bg-black/60 backdrop-blur-md p-10 rounded-2xl border border-white/10 shadow-2xl max-w-md w-full">
           <span className="home-mark" aria-hidden="true" />

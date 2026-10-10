@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { consumir } from '@/lib/rateLimit'
 import { audit } from '@/lib/audit'
 import { erro, exigir, resp, seguro } from '@/lib/auth'
+import { limiteDoPlano } from '@/lib/planos'
 
 // Dono gera um código de convite (uso único, validade em BARBEARIA.conviteHoras) para a equipe.
 export const POST = seguro(async (req: NextRequest) => {
@@ -13,6 +14,15 @@ export const POST = seguro(async (req: NextRequest) => {
   const dados = await req.json().catch(() => ({}))
   const papel: PapelConvite = dados?.role === 'recepcionista' ? 'recepcionista' : 'barbeiro'
   if (dados?.role !== undefined && !['barbeiro', 'recepcionista'].includes(dados.role)) return erro(400, 'Tipo de acesso inválido.')
+  if (papel === 'barbeiro') {
+    const [barbearia, ativos] = await Promise.all([
+      prisma.barbearia.findUnique({ where: { id: r.user.barbeariaId }, select: { plano: true } }),
+      prisma.barbeiro.count({ where: { barbeariaId: r.user.barbeariaId, ativo: true } }),
+    ])
+    if (!barbearia) return erro(404, 'Barbearia não encontrada')
+    const limite = limiteDoPlano(barbearia.plano).profissionais
+    if (ativos >= limite) return erro(403, `O plano atual já atingiu o limite de ${limite} profissional(is) ativo(s).`)
+  }
   const c = await criarConvite(r.user.id, r.user.barbeariaId, papel)
   await audit(req, { acao: 'convite_criado', resultado: 'ok', userId: r.user.id, detalhe: { papel } })
   return resp(c, 201) // o código só aparece agora; no servidor fica apenas o hash

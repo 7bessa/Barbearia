@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -170,7 +168,7 @@ h3 { margin-bottom: .5rem; font-size: .9rem; }
 
 .auth-page { position: relative; z-index: 1; display: grid; min-height: 100vh; place-items: center; padding: clamp(14px, 3vw, 38px); }
 .auth-layout { display: grid; grid-template-columns: minmax(300px, 1.13fr) minmax(355px, .87fr); width: min(1120px, 100%); min-height: min(700px, calc(100vh - 56px)); overflow: hidden; border: 1px solid rgba(214,171,107,.22); border-radius: 6px; background: #1a1210; box-shadow: 0 34px 90px rgba(0,0,0,.48); }
-.auth-brand { position: relative; display: flex; isolation: isolate; flex-direction: column; justify-content: space-between; overflow: hidden; padding: clamp(28px, 4vw, 52px); border-right: 1px solid rgba(214,171,107,.18); background: url('/barbershop-auth-hero.png') center / cover no-repeat; }
+.auth-brand { position: relative; display: flex; isolation: isolate; flex-direction: column; justify-content: space-between; overflow: hidden; padding: clamp(28px, 4vw, 52px); border-right: 1px solid rgba(214,171,107,.18); background: url('/barbershop-auth-hero.webp') center / cover no-repeat; }
 .auth-brand-shade { position: absolute; z-index: -1; inset: 0; background: linear-gradient(90deg, rgba(16,12,10,.26), rgba(16,12,10,.55) 58%, rgba(16,12,10,.9)); }
 .auth-wordmark { display: inline-flex; align-items: center; gap: 11px; width: fit-content; color: #ebd897; font-family: 'Playfair Display', Georgia, serif; font-size: 1.18rem; font-weight: 700; letter-spacing: .18em; text-decoration: none; }
 .auth-mark { width: 43px; height: 43px; background: #d19a52; mask: url('/scissors.svg') center / contain no-repeat; -webkit-mask: url('/scissors.svg') center / contain no-repeat; filter: drop-shadow(0 1px 9px rgba(0,0,0,.45)); }

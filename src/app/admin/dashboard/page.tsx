@@ -58,6 +58,9 @@ export default function Dashboard() {
   const [convite, setConvite] = useState<{ codigo: string; expira: string; role: 'barbeiro' | 'recepcionista' } | null>(null)
   const [eventos, setEventos] = useState<Evento[]>([])
   const [erro, setErro] = useState('')
+  const [erroCaixa, setErroCaixa] = useState('')
+  const [erroAgenda, setErroAgenda] = useState('')
+  const [erroRelatorio, setErroRelatorio] = useState('')
   const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
@@ -72,17 +75,35 @@ export default function Dashboard() {
 
   const carregar = useCallback(async () => {
     setCarregando(true)
-    const [c, a, cat, r] = await Promise.all([
-      api<Resumo>(`/api/admin/financeiro/caixa?data=${dia}`),
-      api<{ agendamentos: Ag[] }>('/api/agendamentos'),
-      api<Catalogo>('/api/catalogo'),
-      visao === 'financeiro' ? api<Resumo>(`/api/admin/financeiro/relatorio?mes=${mes}`) : Promise.resolve(null),
-    ])
-    setCaixa(c.ok ? c.data : null)
-    setRel(r?.ok ? r.data : null)
-    if (a.ok && a.data) setAgendamentos(a.data.agendamentos)
-    if (cat.ok && cat.data) setCatalogo(cat.data)
-    setCarregando(false)
+    setCaixa(null)
+    setRel(null)
+    setAgendamentos([])
+    setErroCaixa('')
+    setErroAgenda('')
+    setErroRelatorio('')
+    try {
+      const [c, a, cat, r] = await Promise.all([
+        api<Resumo>(`/api/admin/financeiro/caixa?data=${dia}`),
+        api<{ agendamentos: Ag[] }>('/api/agendamentos'),
+        api<Catalogo>('/api/catalogo'),
+        visao === 'financeiro' ? api<Resumo>(`/api/admin/financeiro/relatorio?mes=${mes}`) : Promise.resolve(null),
+      ])
+      setCaixa(c.ok ? c.data : null)
+      if (!c.ok) setErroCaixa('Não foi possível consultar o caixa. Tente atualizar.')
+      if (a.ok && a.data) setAgendamentos(a.data.agendamentos)
+      else setErroAgenda('Não foi possível carregar os agendamentos. Tente atualizar.')
+      if (cat.ok && cat.data) setCatalogo(cat.data)
+      if (visao === 'financeiro') {
+        setRel(r?.ok ? r.data : null)
+        if (!r?.ok) setErroRelatorio('Não foi possível carregar o relatório mensal. Tente atualizar.')
+      }
+    } catch {
+      setErroCaixa('Falha de conexão ao carregar o painel. Tente novamente.')
+      setErroAgenda('Falha de conexão ao carregar os agendamentos. Tente novamente.')
+      if (visao === 'financeiro') setErroRelatorio('Falha de conexão ao carregar o relatório. Tente novamente.')
+    } finally {
+      setCarregando(false)
+    }
   }, [dia, mes, visao])
 
   useEffect(() => { carregar() }, [carregar])
@@ -130,21 +151,23 @@ export default function Dashboard() {
       {visao === 'resumo' && <>
         <div className="today-dashboard">
           <Cartao titulo="Faturamento de hoje" className={`today-money ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
+            {erroCaixa ? <><p className="error" role="alert">{erroCaixa}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></> : carregando && !caixa ? <p className="muted">Consultando o caixa...</p> : <>
             <strong className="today-money-value text-barber-gold font-bold !text-barber-gold">{brl(caixa?.bruto ?? 0)}</strong>
             <p className="muted">{caixa?.atendimentos ?? 0} atendimento(s) com pagamento confirmado.</p>
             <div className="today-money-detail"><span>Em aberto hoje</span><strong className="text-barber-gold font-bold !text-barber-gold">{brl(caixa?.previsto ?? 0)}</strong></div>
             <a className="block w-full mt-4 border border-white/10 bg-white/5 py-2 text-center text-white transition hover:bg-white/10 rounded-lg" href="#financeiro">Ver caixa completo</a>
+            </>}
           </Cartao>
           <Cartao titulo={`Próximos atendimentos (${hoje.pendentes.length})`} className={`today-list-panel ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
-            {carregando ? <p className="muted">Carregando agenda...</p> : hoje.pendentes.length === 0 ? <p className="empty-state">Nenhum agendamento pendente para hoje.</p> : <div className="today-list">{[...hoje.pendentes].sort((a, b) => a.hora.localeCompare(b.hora)).map((a) => (
+            {erroAgenda ? <><p className="error" role="alert">{erroAgenda}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></> : carregando ? <p className="muted">Carregando agenda...</p> : hoje.pendentes.length === 0 ? <p className="empty-state">Nenhum agendamento pendente para hoje.</p> : <div className="today-list">{[...hoje.pendentes].sort((a, b) => a.hora.localeCompare(b.hora)).map((a) => (
               <div className="list-row" key={a.id}>
                 <div className="list-main"><p className="list-title">{a.hora} · {a.clienteNome ?? 'Cliente'}</p><p className="list-meta">{nomeServico(a.servicoId)} · {nomeBarbeiro(a.barberId)}</p></div>
                 <span className="status-tag text-barber-gold font-bold !text-barber-gold" data-status={a.status}>{brl(a.preco)}</span>
               </div>
             ))}</div>}
           </Cartao>
-          <Cartao titulo={`Pendências de pagamento (${pendencias.length})`} className={`today-list-panel ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
-            {carregando ? <p className="muted">Conferindo pendências...</p> : pendencias.length === 0 ? <p className="empty-state">Nenhum atendimento sem baixa até agora.</p> : <div className="today-list">{pendencias.map((a) => (
+          <Cartao titulo={`Pendências de pagamento${erroAgenda ? '' : ` (${pendencias.length})`}`} className={`today-list-panel ${dashboardCardClass}`} headingClassName={dashboardHeadingClass} bodyClassName={dashboardBodyClass} titleClassName={dashboardTitleClass}>
+            {erroAgenda ? <><p className="error" role="alert">{erroAgenda}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></> : carregando ? <p className="muted">Conferindo pendências...</p> : pendencias.length === 0 ? <p className="empty-state">Nenhum atendimento sem baixa até agora.</p> : <div className="today-list">{pendencias.map((a) => (
               <div className="list-row" key={a.id}>
                 <div className="list-main"><p className="list-title">{a.clienteNome ?? 'Cliente'} · <span className="text-barber-gold font-bold !text-barber-gold">{brl(a.preco)}</span></p><p className="list-meta">{dataBR(a.data)} às {a.hora} · {nomeServico(a.servicoId)}</p></div>
                 <a className="inline-flex items-center justify-center bg-transparent border border-barber-gold text-barber-gold hover:bg-barber-gold hover:text-black px-4 py-2 rounded-lg text-sm transition-all" href="#agendamentos">Dar baixa</a>
@@ -157,7 +180,7 @@ export default function Dashboard() {
       {visao === 'financeiro' && <div id="financeiro" className="page-section-stack">
         <Cartao titulo="Caixa do dia">
           <label className="inline-row muted">Data<input className={campo} type="date" value={dia} onChange={(e) => e.target.value && setDia(e.target.value)} /></label>
-          {caixa ? <ResumoFinanceiro r={caixa} /> : <p className="muted">Carregando caixa...</p>}
+          {caixa ? <ResumoFinanceiro r={caixa} /> : erroCaixa ? <div><p className="error" role="alert">{erroCaixa}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></div> : <p className="muted">Carregando caixa...</p>}
         </Cartao>
         <Cartao titulo="Despesas do dia">
           <AdminDespesas data={dia} aoAlterar={carregar} />
@@ -167,7 +190,7 @@ export default function Dashboard() {
         </Cartao>
         <Cartao titulo="Relatório mensal">
           <div className="inline-row"><label className="inline-row muted">Mês<input className={campo} type="month" value={mes} onChange={(e) => e.target.value && setMes(e.target.value)} /></label><a className={`${botaoSec} whitespace-nowrap`} href={`/api/admin/financeiro/relatorio?mes=${mes}&formato=csv`}>Baixar CSV</a></div>
-          {rel ? <ResumoFinanceiro r={rel} /> : <p className="muted">Carregando relatório...</p>}
+          {rel ? <ResumoFinanceiro r={rel} /> : erroRelatorio ? <div><p className="error" role="alert">{erroRelatorio}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></div> : <p className="muted">Carregando relatório...</p>}
         </Cartao>
       </div>}
 

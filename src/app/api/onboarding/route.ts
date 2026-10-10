@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { BARBEARIA } from '@/config/barbearia'
 import { prisma } from '@/lib/prisma'
-import { conflito, toUsuario } from '@/lib/db'
+import { conflito } from '@/lib/db'
 import { onboardingSchema } from '@/lib/validation'
 import { hashSenha } from '@/lib/hash'
 import { consumir } from '@/lib/rateLimit'
 import { audit, getIp } from '@/lib/audit'
-import { criarSessao, erro, publico, seguro, verificarCsrf } from '@/lib/auth'
+import { erro, seguro, verificarCsrf } from '@/lib/auth'
 import { onboardingPublicoAtivo } from '@/lib/onboarding'
+import { emailPodeEnviar, emitirTokenConta, enviarLinkConta } from '@/lib/account-tokens'
 
 export const POST = seguro(async (req: NextRequest) => {
   if (!onboardingPublicoAtivo()) return erro(503, 'O cadastro de novas barbearias ainda não está disponível.')
   if (!verificarCsrf(req)) return erro(403, 'Requisição inválida')
+  if (!emailPodeEnviar()) return erro(503, 'A abertura de novas barbearias está temporariamente indisponível.')
   if (!(await consumir(`onboarding:${getIp(req)}`, 3, 24 * 60 * 60 * 1000))) {
     return erro(429, 'Muitas tentativas. Tente novamente amanhã.')
   }
@@ -48,6 +50,7 @@ export const POST = seguro(async (req: NextRequest) => {
           telefone: d.telefone,
           senhaHash,
           role: 'admin',
+          emailVerificado: false,
         },
       })
       await tx.horario.create({
@@ -63,11 +66,16 @@ export const POST = seguro(async (req: NextRequest) => {
       return { barbearia, usuario }
     })
 
-    const usuario = toUsuario(criado.usuario)
-    const res = NextResponse.json({ usuario: publico(usuario) }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
-    await criarSessao(res, usuario)
-    await audit(req, { acao: 'barbearia_criada', resultado: 'ok', userId: usuario.id, barbeariaId: criado.barbearia.id })
-    return res
+    const token = await emitirTokenConta(criado.usuario.id, 'verificacao')
+    let linkLocal: string | undefined
+    try {
+      linkLocal = await enviarLinkConta(d.email, d.nome, 'verificacao', token)
+    } catch {
+      await audit(req, { acao: 'barbearia_criada', resultado: 'falha', userId: criado.usuario.id, barbeariaId: criado.barbearia.id, detalhe: { confirmacaoEnviada: false } })
+      return erro(503, 'A barbearia foi criada, mas o e-mail falhou. Use “Reenviar confirmação” na tela de acesso.')
+    }
+    await audit(req, { acao: 'barbearia_criada', resultado: 'ok', userId: criado.usuario.id, barbeariaId: criado.barbearia.id, detalhe: { confirmacaoEnviada: true } })
+    return NextResponse.json({ confirmacaoNecessaria: true, email: d.email, linkLocal }, { status: 201, headers: { 'Cache-Control': 'no-store' } })
   } catch (e) {
     if (conflito(e)) return erro(409, 'Não foi possível abrir a barbearia online. Confira o endereço e o e-mail informados.')
     throw e

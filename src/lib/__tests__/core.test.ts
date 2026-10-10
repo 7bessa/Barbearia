@@ -9,6 +9,9 @@ import { onboardingPublicoAtivo } from '@/lib/onboarding'
 import { normalizarSlug, slugValido } from '@/lib/slug-barbearia'
 import { filtroClientesTenant } from '@/lib/tenant-scope'
 import { agendamentoPublicoSchema, barbeariaConfigSchema, onboardingSchema } from '@/lib/validation'
+import { createHmac } from 'node:crypto'
+import { acessoAssinaturaAtivo, assinaturaAssinadaValida, statusBarbeariaGateway } from '@/lib/assinatura'
+import { api } from '@/lib/api-client'
 
 // "Agora" fixo: terça-feira 2026-10-06 10:00 (Brasília).
 const AGORA = '2026-10-06 10:00'
@@ -18,6 +21,19 @@ const ctx = (o: Partial<Contexto> = {}): Contexto => ({
 })
 const QUARTA = '2026-10-07'
 const DOMINGO = '2026-10-11'
+
+test('cliente de API transforma falha de rede em erro recuperável', async () => {
+  const fetchOriginal = globalThis.fetch
+  globalThis.fetch = (async () => { throw new TypeError('network unavailable') }) as typeof fetch
+  try {
+    const resposta = await api('/api/health')
+    assert.equal(resposta.ok, false)
+    assert.equal(resposta.status, 0)
+    assert.match(resposta.data?.erro ?? '', /Falha de conexão/)
+  } finally {
+    globalThis.fetch = fetchOriginal
+  }
+})
 
 test('grade: cliente só nos múltiplos do passo; equipe de 5 em 5', () => {
   assert.equal(regraHorario(ctx(), QUARTA, '09:00', 30), null)
@@ -66,6 +82,38 @@ test('onboarding publico fica fechado por padrao em producao', () => {
   assert.equal(onboardingPublicoAtivo('development'), true)
   assert.equal(onboardingPublicoAtivo('production'), false)
   assert.equal(onboardingPublicoAtivo('production', '1'), true)
+})
+
+test('trial libera acesso só até a data; assinatura ativa continua liberada', () => {
+  const agora = new Date('2026-10-09T12:00:00.000Z')
+  assert.equal(acessoAssinaturaAtivo('teste', '2026-10-10T12:00:00.000Z', agora), true)
+  assert.equal(acessoAssinaturaAtivo('teste', '2026-10-09T12:00:00.000Z', agora), false)
+  assert.equal(acessoAssinaturaAtivo('ativa', null, agora), true)
+  assert.equal(acessoAssinaturaAtivo('cancelada', '2026-10-10T12:00:00.000Z', agora), false)
+})
+
+test('webhook só muda o estado conforme resposta verificada do gateway', () => {
+  const trial = '2026-10-10T12:00:00.000Z'
+  const expirado = '2026-10-08T12:00:00.000Z'
+  const agora = new Date('2026-10-09T12:00:00.000Z')
+  assert.equal(statusBarbeariaGateway('authorized', expirado, agora), 'ativa')
+  assert.equal(statusBarbeariaGateway('pending', trial, agora), 'teste')
+  assert.equal(statusBarbeariaGateway('cancelled', expirado, agora), 'cancelada')
+  assert.equal(statusBarbeariaGateway('paused', expirado, agora), 'suspensa')
+  assert.equal(statusBarbeariaGateway('pending', expirado, agora), 'pendente')
+})
+
+test('assinatura do webhook Mercado Pago usa HMAC e comparação constante', () => {
+  const segredo = 'segredo-local-de-teste'
+  const id = 'preapproval-123'
+  const requestId = 'req-abc'
+  const ts = '1720000000'
+  const manifesto = `id:${id.toLowerCase()};request-id:${requestId};ts:${ts};`
+  const v1 = createHmac('sha256', segredo).update(manifesto).digest('hex')
+  const base = { id, requestId, segredo, assinatura: `ts=${ts},v1=${v1}` }
+  assert.equal(assinaturaAssinadaValida(base), true)
+  assert.equal(assinaturaAssinadaValida({ ...base, id: 'outro-id' }), false)
+  assert.equal(assinaturaAssinadaValida({ ...base, assinatura: `ts=${ts},v1=${'0'.repeat(64)}` }), false)
 })
 
 test('conflito, bloqueio e horários livres', () => {

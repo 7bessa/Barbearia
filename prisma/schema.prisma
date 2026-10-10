@@ -29,56 +29,59 @@ enum Forma {
 }
 
 model Barbearia {
-  id           Int           @id @default(autoincrement())
-  nome         String
-  slug         String        @unique
-  slogan       String        @default("")
-  logo         String        @default("/logo.svg")
-  corPrimaria  String        @default("#fbbf24")
-  corFundo     String        @default("#09090b")
-  imagemAmbiente String      @default("/barbershop-ambient.png")
-  capacidadeCadeiras Int     @default(1)
-  plano        String        @default("essencial")
-  assinaturaStatus String    @default("ativa")
-  testeAte     DateTime?
-  ativa        Boolean       @default(true)
-  criadaEm     DateTime      @default(now())
-  usuarios     Usuario[]
-  barbeiros    Barbeiro[]
-  servicos     Servico[]
-  horario      Horario?
-  bloqueios    Bloqueio[]
-  notas        Nota[]
-  agendamentos Agendamento[]
-  convites     Convite[]
-  auditorias   Auditoria[]
-  listaEspera  ListaEspera[]
-  despesas     Despesa[]
-  fechamentosCaixa FechamentoCaixa[]
-  produtos     Produto[]
-  movimentosEstoque MovimentoEstoque[]
+  id                 Int                @id @default(autoincrement())
+  nome               String
+  slug               String             @unique
+  slogan             String             @default("")
+  logo               String             @default("/logo.svg")
+  corPrimaria        String             @default("#fbbf24")
+  corFundo           String             @default("#09090b")
+  imagemAmbiente     String             @default("/barbershop-ambient.png")
+  capacidadeCadeiras Int                @default(1)
+  plano              String             @default("essencial")
+  assinaturaStatus   String             @default("ativa")
+  testeAte           DateTime?
+  ativa              Boolean            @default(true)
+  criadaEm           DateTime           @default(now())
+  usuarios           Usuario[]
+  barbeiros          Barbeiro[]
+  servicos           Servico[]
+  horario            Horario?
+  bloqueios          Bloqueio[]
+  notas              Nota[]
+  agendamentos       Agendamento[]
+  convites           Convite[]
+  auditorias         Auditoria[]
+  listaEspera        ListaEspera[]
+  despesas           Despesa[]
+  fechamentosCaixa   FechamentoCaixa[]
+  produtos           Produto[]
+  movimentosEstoque  MovimentoEstoque[]
+  assinaturas        Assinatura[]
 }
 
 model Usuario {
-  id          Int       @id @default(autoincrement())
-  barbeariaId Int
-  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
-  nome        String
-  email       String?   @unique
-  telefone    String
-  role        Role
-  senhaHash   String
-  semConta    Boolean   @default(false)
-  criadoPorId Int?
-  criadoPor   Usuario?  @relation("CriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
-  criados     Usuario[] @relation("CriadoPor")
-  barberId    Int?
-  barbeiro    Barbeiro? @relation(fields: [barberId], references: [id])
+  id              Int       @id @default(autoincrement())
+  barbeariaId     Int
+  barbearia       Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  nome            String
+  email           String?   @unique
+  telefone        String
+  role            Role
+  senhaHash       String
+  emailVerificado Boolean   @default(true)
+  semConta        Boolean   @default(false)
+  criadoPorId     Int?
+  criadoPor       Usuario?  @relation("CriadoPor", fields: [criadoPorId], references: [id], onDelete: SetNull)
+  criados         Usuario[] @relation("CriadoPor")
+  barberId        Int?
+  barbeiro        Barbeiro? @relation(fields: [barberId], references: [id])
 
   agendamentos   Agendamento[]
   notasDoCliente Nota[]        @relation("NotaCliente")
   notasEscritas  Nota[]        @relation("NotaAutor")
   sessoes        Sessao[]
+  tokensConta    TokenConta[]
 
   @@unique([barbeariaId, telefone])
   @@index([barbeariaId])
@@ -156,29 +159,29 @@ model Nota {
 }
 
 model Agendamento {
-  id          Int       @id @default(autoincrement())
-  barbeariaId Int
-  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
-  clienteId   Int? // null = agendamento público sem conta ou cliente removido (LGPD)
-  cliente     Usuario?  @relation(fields: [clienteId], references: [id], onDelete: SetNull)
-  clienteNome String
-  clienteTel  String
-  barberId    Int
-  barbeiro    Barbeiro  @relation(fields: [barberId], references: [id])
-  servicoId   Int
-  servico     Servico   @relation(fields: [servicoId], references: [id])
-  data        String // YYYY-MM-DD (Brasília)
-  hora        String // HH:MM
-  dur         Int
-  precoCent   Int
-  adicionalCent Int       @default(0)
-  cadeira     Int           @default(1)
-  status      Status    @default(agendado)
-  criadoEm    DateTime  @default(now())
-  forma       Forma?
-  comissaoPct Int?
-  pagoEm      DateTime?
-  itensComanda ItemComanda[]
+  id            Int           @id @default(autoincrement())
+  barbeariaId   Int
+  barbearia     Barbearia     @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  clienteId     Int? // null = agendamento público sem conta ou cliente removido (LGPD)
+  cliente       Usuario?      @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  clienteNome   String
+  clienteTel    String
+  barberId      Int
+  barbeiro      Barbeiro      @relation(fields: [barberId], references: [id])
+  servicoId     Int
+  servico       Servico       @relation(fields: [servicoId], references: [id])
+  data          String // YYYY-MM-DD (Brasília)
+  hora          String // HH:MM
+  dur           Int
+  precoCent     Int
+  adicionalCent Int           @default(0)
+  cadeira       Int           @default(1)
+  status        Status        @default(agendado)
+  criadoEm      DateTime      @default(now())
+  forma         Forma?
+  comissaoPct   Int?
+  pagoEm        DateTime?
+  itensComanda  ItemComanda[]
 
   @@index([barberId, data])
   @@index([clienteId])
@@ -189,45 +192,45 @@ model Agendamento {
 
 // Itens adicionais registrados no balcão ao concluir um atendimento.
 model ItemComanda {
-  id             Int          @id @default(autoincrement())
-  agendamentoId  Int
-  agendamento    Agendamento  @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
-  descricao      String
-  quantidade     Int          @default(1)
-  valorUnitCent  Int
-  produtoId      Int?
-  produto        Produto?     @relation(fields: [produtoId], references: [id], onDelete: SetNull)
-  criadaEm       DateTime     @default(now())
+  id            Int         @id @default(autoincrement())
+  agendamentoId Int
+  agendamento   Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  descricao     String
+  quantidade    Int         @default(1)
+  valorUnitCent Int
+  produtoId     Int?
+  produto       Produto?    @relation(fields: [produtoId], references: [id], onDelete: SetNull)
+  criadaEm      DateTime    @default(now())
 
   @@index([agendamentoId])
 }
 
 model Produto {
-  id              Int       @id @default(autoincrement())
-  barbeariaId     Int
-  barbearia       Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
-  nome            String
-  precoCent       Int
-  quantidade      Int       @default(0)
-  estoqueMinimo   Int       @default(0)
-  ativo           Boolean   @default(true)
-  itensComanda    ItemComanda[]
-  movimentos      MovimentoEstoque[]
-  criadoEm        DateTime  @default(now())
+  id            Int                @id @default(autoincrement())
+  barbeariaId   Int
+  barbearia     Barbearia          @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  nome          String
+  precoCent     Int
+  quantidade    Int                @default(0)
+  estoqueMinimo Int                @default(0)
+  ativo         Boolean            @default(true)
+  itensComanda  ItemComanda[]
+  movimentos    MovimentoEstoque[]
+  criadoEm      DateTime           @default(now())
 
   @@index([barbeariaId, ativo])
 }
 
 model MovimentoEstoque {
-  id           Int       @id @default(autoincrement())
-  barbeariaId  Int
-  barbearia    Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
-  produtoId    Int
-  produto      Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
-  tipo         String
-  quantidade   Int
-  descricao    String    @default("")
-  criadaEm     DateTime  @default(now())
+  id          Int       @id @default(autoincrement())
+  barbeariaId Int
+  barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  produtoId   Int
+  produto     Produto   @relation(fields: [produtoId], references: [id], onDelete: Cascade)
+  tipo        String
+  quantidade  Int
+  descricao   String    @default("")
+  criadaEm    DateTime  @default(now())
 
   @@index([barbeariaId, produtoId, criadaEm])
 }
@@ -241,6 +244,20 @@ model Sessao {
   indevidas   Int      @default(0)
 
   @@index([userId])
+}
+
+model TokenConta {
+  id          Int       @id @default(autoincrement())
+  hash        String    @unique
+  usuarioId   Int
+  usuario     Usuario   @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  tipo        String
+  expiraEm    DateTime
+  consumidoEm DateTime?
+  criadoEm    DateTime  @default(now())
+
+  @@index([usuarioId, tipo])
+  @@index([expiraEm])
 }
 
 model RateLimit {
@@ -301,7 +318,7 @@ model Despesa {
   id          Int       @id @default(autoincrement())
   barbeariaId Int
   barbearia   Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
-  data        String    // YYYY-MM-DD (Brasília)
+  data        String // YYYY-MM-DD (Brasília)
   categoria   String
   descricao   String
   valorCent   Int
@@ -313,20 +330,36 @@ model Despesa {
 
 // Um fechamento por dia e por barbearia, usado para conferir o caixa físico.
 model FechamentoCaixa {
-  id             Int       @id @default(autoincrement())
-  barbeariaId    Int
-  barbearia      Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
-  data           String
-  aberturaCent   Int       @default(0)
+  id                  Int       @id @default(autoincrement())
+  barbeariaId         Int
+  barbearia           Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Cascade)
+  data                String
+  aberturaCent        Int       @default(0)
   contadoDinheiroCent Int?
-  contadoPixCent Int?
-  contadoDebitoCent Int?
-  contadoCreditoCent Int?
-  observacao     String    @default("")
-  fechadoEm      DateTime?
-  fechadoPorId   Int?
-  criadaEm       DateTime  @default(now())
+  contadoPixCent      Int?
+  contadoDebitoCent   Int?
+  contadoCreditoCent  Int?
+  observacao          String    @default("")
+  fechadoEm           DateTime?
+  fechadoPorId        Int?
+  criadaEm            DateTime  @default(now())
 
   @@unique([barbeariaId, data])
   @@index([barbeariaId, data])
+}
+
+model Assinatura {
+  id             Int       @id @default(autoincrement())
+  barbeariaId    Int
+  barbearia      Barbearia @relation(fields: [barbeariaId], references: [id], onDelete: Restrict)
+  gatewayId      String    @unique
+  gatewayPlanoId String
+  plano          String
+  status         String
+  checkoutUrl    String?
+  criadaEm       DateTime  @default(now())
+  atualizadaEm   DateTime  @updatedAt
+
+  @@index([barbeariaId, criadaEm])
+  @@index([barbeariaId, status])
 }

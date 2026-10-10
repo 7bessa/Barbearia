@@ -8,6 +8,7 @@ import { prisma } from './prisma'
 import { sha256 } from './hash'
 import type { Role } from './jwt'
 import { BARBEARIA } from '@/config/barbearia'
+import { limiteDoPlano } from '@/lib/planos'
 import { filtroClientesTenant } from './tenant-scope'
 import { agoraBR, horariosLivresDe, regraHorario, type Contexto, type Horario } from './horarios'
 
@@ -20,6 +21,7 @@ export type Status = 'agendado' | 'concluido' | 'faltou' | 'cancelado'
 export type Usuario = {
   id: number; barbeariaId: number; nome: string; email: string; telefone: string
   role: Role; barberId?: number; senhaHash: string
+  emailVerificado: boolean
   semConta?: boolean // cliente cadastrado no balcão (não faz login)
   criadoPor?: number
 }
@@ -38,6 +40,7 @@ export type Agendamento = {
 export const toUsuario = (u: PUsuario): Usuario => ({
   id: u.id, barbeariaId: u.barbeariaId, nome: u.nome, email: u.email ?? '', telefone: u.telefone, role: u.role, senhaHash: u.senhaHash,
   barberId: u.barberId ?? undefined, semConta: u.semConta || undefined, criadoPor: u.criadoPorId ?? undefined,
+  emailVerificado: u.emailVerificado,
 })
 export const toBarb = (b: PBarb): Barbeiro => ({ id: b.id, nome: b.nome, foto: b.foto, ativo: b.ativo, comissao: b.comissao })
 export const toServ = (s: PServ): Servico => ({ id: s.id, nome: s.nome, preco: s.precoCent / 100, dur: s.dur, ativo: s.ativo })
@@ -167,19 +170,46 @@ export async function agendar(
 }
 
 // ---------- usuários ----------
-type NovoUsuario = { nome: string; email: string; telefone: string; role: Role; senhaHash: string; barbeariaId: number; semConta?: boolean; criadoPor?: number }
+type NovoUsuario = { nome: string; email: string; telefone: string; role: Role; senhaHash: string; barbeariaId: number; semConta?: boolean; criadoPor?: number; emailVerificado?: boolean }
 export async function criarUsuario(d: NovoUsuario, cx: Cx = prisma) {
   const barbeariaId = d.barbeariaId
   const barberId = d.role === 'barbeiro'
     ? (await cx.barbeiro.create({ data: { barbeariaId, nome: d.nome, comissao: BARBEARIA.comissaoPadrao } })).id
     : undefined
   const u = await cx.usuario.create({
-    data: { barbeariaId, nome: d.nome, email: d.email || null, telefone: d.telefone, role: d.role, senhaHash: d.senhaHash, semConta: d.semConta ?? false, criadoPorId: d.criadoPor, barberId },
+    data: { barbeariaId, nome: d.nome, email: d.email || null, telefone: d.telefone, role: d.role, senhaHash: d.senhaHash, semConta: d.semConta ?? false, criadoPorId: d.criadoPor, barberId, emailVerificado: d.emailVerificado ?? true },
   })
   return toUsuario(u)
 }
 
 export class ConviteInvalido extends Error {}
+export class LimitePlanoAtingido extends Error {
+  constructor(readonly limite: number) { super('Limite de profissionais do plano atingido') }
+}
+
+async function garantirVagaProfissional(barbeariaId: number, cx: Cx) {
+  await cx.$queryRaw(Prisma.sql`SELECT "id" FROM "Barbearia" WHERE "id" = ${barbeariaId} FOR UPDATE`)
+  const barbearia = await cx.barbearia.findUnique({ where: { id: barbeariaId }, select: { plano: true } })
+  if (!barbearia) throw new Error('Barbearia não encontrada')
+  const limite = limiteDoPlano(barbearia.plano).profissionais
+  const ativos = await cx.barbeiro.count({ where: { barbeariaId, ativo: true } })
+  if (ativos >= limite) throw new LimitePlanoAtingido(limite)
+  return limite
+}
+
+export async function criarBarbeiroDentroDoPlano(data: {
+  barbeariaId: number
+  nome: string
+  foto: string
+  comissao: number
+  ativo: boolean
+}) {
+  return prisma.$transaction(async (tx) => {
+    await garantirVagaProfissional(data.barbeariaId, tx)
+    return tx.barbeiro.create({ data })
+  })
+}
+
 // Cadastro de equipe consome o convite na mesma transação que cria o usuário.
 export function cadastrar(d: NovoUsuario, codigoConvite?: string) {
   return prisma.$transaction(async (tx) => {
@@ -193,6 +223,7 @@ export function cadastrar(d: NovoUsuario, codigoConvite?: string) {
     if (!tenantDoCadastro) throw new ConviteInvalido()
     if (equipe && papelDoConvite(codigoConvite ?? '') !== d.role) throw new ConviteInvalido()
     const barbeariaId = tenantDoCadastro
+    if (d.role === 'barbeiro') await garantirVagaProfissional(barbeariaId, tx)
     const u = await criarUsuario({ ...d, barbeariaId }, tx)
     if (equipe && !(await usarConvite(codigoConvite ?? '', u.id, barbeariaId, tx))) throw new ConviteInvalido()
     return u

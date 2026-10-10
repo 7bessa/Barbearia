@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { bloqueioSchema } from '@/lib/validation'
+import { bloqueioSchema, dataSchema } from '@/lib/validation'
 import { agoraBR, dataValida, tm, toBloq } from '@/lib/db'
 import { prisma } from '@/lib/prisma'
 import { audit } from '@/lib/audit'
@@ -10,10 +10,12 @@ export const GET = seguro(async (req: NextRequest) => {
   const r = await exigir(req, ['barbeiro', 'recepcionista', 'admin'])
   if (!r.ok) return r.res
   const hoje = agoraBR().slice(0, 10)
+  const data = req.nextUrl.searchParams.get('data')
+  if (data && !dataSchema.safeParse(data).success) return erro(400, 'Data inválida')
   const filtro = Number(req.nextUrl.searchParams.get('barberId'))
   const barberId = r.user.role === 'barbeiro' ? r.user.barberId ?? -1 : filtro || undefined
   const rows = await prisma.bloqueio.findMany({
-    where: { barbeariaId: r.user.barbeariaId, data: { gte: hoje }, ...(barberId ? { barberId } : {}) },
+    where: { barbeariaId: r.user.barbeariaId, ...(data ? { data } : { data: { gte: hoje } }), ...(barberId ? { barberId } : {}) },
     orderBy: [{ data: 'asc' }, { ini: 'asc' }],
   })
   return resp({ bloqueios: rows.map(toBloq) })

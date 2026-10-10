@@ -38,6 +38,8 @@ export const POST = seguro(async (req: NextRequest) => {
     return erro(401, 'Email ou senha inválidos')
   }
 
+  if (!u.emailVerificado) return erro(403, 'Confirme seu e-mail antes de entrar. Se precisar, solicite um novo link de confirmação.')
+
   await limpar(kEmail)
   const res = NextResponse.json({ usuario: publico(u) }, { headers: { 'Cache-Control': 'no-store' } })
   await criarSessao(res, u, lerRtSid(req))

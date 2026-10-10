@@ -40,6 +40,7 @@ export default function Login() {
           <p className="auth-intro">Acesse a operação da sua barbearia.</p>
           <label>E-mail<span className="auth-field"><span className="field-icon field-icon-mail" aria-hidden="true" /><input className="field" type="email" placeholder="voce@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required /></span></label>
           <label>Senha<span className="auth-field"><span className="field-icon field-icon-lock" aria-hidden="true" /><input className="field" type="password" placeholder="Sua senha" value={senha} onChange={(e) => setSenha(e.target.value)} autoComplete="current-password" required /></span></label>
+          <p className="muted"><Link href="/esqueci-senha" className="text-link">Esqueci minha senha</Link> · <Link href="/verificar-email" className="text-link">Reenviar confirmação</Link></p>
           {erro && <p className="error" role="alert">{erro}</p>}
           <button disabled={carregando} className="button button-primary">{carregando ? 'Entrando...' : 'Entrar'}</button>
           <p className="muted">Ainda não tem conta? <Link href="/cadastro" className="text-link">Cadastrar-se</Link></p>

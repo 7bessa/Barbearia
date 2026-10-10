@@ -14,10 +14,18 @@ export default function AdminDespesas({ data, aoAlterar }: { data: string; aoAlt
   const [valor, setValor] = useState('')
   const [forma, setForma] = useState('dinheiro')
   const [msg, setMsg] = useState('')
+  const [carregando, setCarregando] = useState(true)
+  const [erroCarga, setErroCarga] = useState('')
 
   const carregar = useCallback(async () => {
-    const r = await api<{ despesas: Despesa[] }>(`/api/admin/despesas?data=${data}`)
-    if (r.ok && r.data) setItens(r.data.despesas)
+    setCarregando(true); setErroCarga('')
+    try {
+      const r = await api<{ despesas: Despesa[]; erro?: string }>(`/api/admin/despesas?data=${data}`)
+      if (r.ok && r.data) setItens(r.data.despesas)
+      else setErroCarga(r.data?.erro ?? 'Não foi possível carregar as despesas.')
+    } finally {
+      setCarregando(false)
+    }
   }, [data])
   useEffect(() => { carregar() }, [carregar])
 
@@ -47,7 +55,7 @@ export default function AdminDespesas({ data, aoAlterar }: { data: string; aoAlt
       <div className="inline-row"><button className={botao}>Lançar despesa</button></div>
     </form>
     {msg && <p className="muted" role="status">{msg}</p>}
-    {itens.length === 0 ? <p className="empty-state">Nenhuma despesa lançada em {dataBR(data)}.</p> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Categoria</th><th>Descrição</th><th>Pago com</th><th>Valor</th><th></th></tr></thead><tbody>
+    {erroCarga ? <div><p className="error" role="alert">{erroCarga}</p><button type="button" className={botaoSec} onClick={carregar}>Tentar novamente</button></div> : carregando ? <p className="muted">Carregando despesas...</p> : itens.length === 0 ? <p className="empty-state">Nenhuma despesa lançada em {dataBR(data)}.</p> : <div className="table-wrap"><table className="data-table"><thead><tr><th>Categoria</th><th>Descrição</th><th>Pago com</th><th>Valor</th><th></th></tr></thead><tbody>
       {itens.map((item) => <tr key={item.id}><td>{item.categoria}</td><td>{item.descricao}</td><td>{formas.find(([value]) => value === item.forma)?.[1] ?? item.forma}</td><td>{brl(item.valor)}</td><td><button className={botaoSec} onClick={() => remover(item)}>Remover</button></td></tr>)}
     </tbody></table></div>}
   </>

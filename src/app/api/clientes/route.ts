@@ -29,18 +29,43 @@ export const GET = seguro(async (req: NextRequest) => {
     prisma.usuario.count({ where }),
     prisma.usuario.findMany({
       where, orderBy: { nome: 'asc' }, skip: (pagina - 1) * TAM, take: TAM,
-      include: { agendamentos: { where: { barbeariaId: user.barbeariaId, ...(admin ? {} : { barberId: user.barberId ?? -1 }) }, select: { status: true, data: true, precoCent: true } } },
+      select: { id: true, nome: true, telefone: true, email: true, semConta: true },
     }),
   ])
 
+  const ids = rows.map((cliente) => cliente.id)
+  const atendimentos = ids.length ? await prisma.agendamento.groupBy({
+    by: ['clienteId', 'status'],
+    where: {
+      barbeariaId: user.barbeariaId,
+      clienteId: { in: ids },
+      ...(admin ? {} : { barberId: user.barberId ?? -1 }),
+    },
+    _count: { _all: true },
+    _max: { data: true },
+    _sum: { precoCent: true },
+  }) : []
+  const resumoPorCliente = new Map<number, { visitas: number; faltas: number; ultimoAtendimento: string | null; totalGastoCent: number }>()
+  for (const grupo of atendimentos) {
+    if (grupo.clienteId === null) continue
+    const resumo = resumoPorCliente.get(grupo.clienteId) ?? { visitas: 0, faltas: 0, ultimoAtendimento: null, totalGastoCent: 0 }
+    if (grupo.status === 'concluido') {
+      resumo.visitas += grupo._count._all
+      resumo.totalGastoCent += grupo._sum.precoCent ?? 0
+      if (grupo._max.data && (!resumo.ultimoAtendimento || grupo._max.data > resumo.ultimoAtendimento)) resumo.ultimoAtendimento = grupo._max.data
+    }
+    if (grupo.status === 'faltou') resumo.faltas += grupo._count._all
+    resumoPorCliente.set(grupo.clienteId, resumo)
+  }
+
   const itens = rows.map((u) => {
-    const feitos = u.agendamentos.filter((a) => a.status === 'concluido')
+    const resumo = resumoPorCliente.get(u.id) ?? { visitas: 0, faltas: 0, ultimoAtendimento: null, totalGastoCent: 0 }
     return {
       id: u.id, nome: u.nome, telefone: u.telefone, semConta: u.semConta,
-      visitas: feitos.length,
-      faltas: u.agendamentos.filter((a) => a.status === 'faltou').length,
-      ultimoAtendimento: feitos.reduce((m, a) => (a.data > m ? a.data : m), '') || null,
-      ...(admin ? { email: u.email ?? '', totalGasto: feitos.reduce((s, a) => s + a.precoCent, 0) / 100 } : {}),
+      visitas: resumo.visitas,
+      faltas: resumo.faltas,
+      ultimoAtendimento: resumo.ultimoAtendimento,
+      ...(admin ? { email: u.email ?? '', totalGasto: resumo.totalGastoCent / 100 } : {}),
     }
   })
   return resp({ clientes: itens, total, pagina, tamanho: TAM })

@@ -68,6 +68,13 @@ export async function middleware(req: NextRequest) {
   if (!req.cookies.get(COOKIES.csrf)) {
     res.cookies.set(COOKIES.csrf, hex(32), { httpOnly: false, secure: prod, sameSite: 'strict', path: '/' })
   }
+  res.headers.set('Referrer-Policy', 'no-referrer')
+  res.headers.set('X-Content-Type-Options', 'nosniff')
+  res.headers.set('X-Frame-Options', 'DENY')
+  res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+  if (pathname === '/verificar-email' || pathname === '/redefinir-senha') {
+    res.headers.set('Cache-Control', 'no-store')
+  }
   return res
 }
 
